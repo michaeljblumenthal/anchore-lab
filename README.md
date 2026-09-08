@@ -275,54 +275,48 @@ make bootstrap     # everything else: registry, storage, catalogue, jobs,
 
 That's it — the solution is running. Optional: reproduce the numbers
 quoted throughout this document with
-`cd phase6-self-scan && ./aggregate-report.sh`.
+`cd phase6-self-scan && ./aggregate-report.sh`. `make help` lists every
+available target.
 
-### Connect it to Claude Desktop, then scan a repo — entirely in-cluster
+## Connect Claude Desktop, scan a repo
 
-Every tool (Syft, Grype, Grant) and both MCP servers run as pods after
-`make bootstrap` — nothing has to run on your laptop for this. To scan a
-repo, give it a git URL: the server clones the repo itself inside the
-cluster, scans the clone, and deletes it — the same way a CI runner
-would, with no dependency on your local filesystem.
+Everything below runs after the cluster is up. Nothing installs on your
+laptop — Claude Desktop just points at the running cluster.
 
-1. Add this to Claude Desktop's
-   `~/Library/Application Support/Claude/claude_desktop_config.json`
-   (macOS) — no local install, no venv, just a pointer at the running
-   cluster:
+**Step 1 — add the connection.** Open
+`~/Library/Application Support/Claude/claude_desktop_config.json`
+(macOS) and add:
 
-   ```json
-   {
-     "mcpServers": {
-       "anchore-lab-cluster": {
-         "type": "http",
-         "url": "http://mcp.lab.localhost:8080/mcp"
-       }
-     }
-   }
-   ```
+```json
+{
+  "mcpServers": {
+    "anchore-lab-cluster": {
+      "type": "http",
+      "url": "http://mcp.lab.localhost:8080/mcp"
+    }
+  }
+}
+```
 
-2. Restart Claude Desktop. Nine tools appear, including `scan_git_repo`.
-3. Try it, in a new chat:
+**Step 2 — restart Claude Desktop.** Nine tools appear under its MCP
+menu, including `scan_git_repo`.
 
-   > Use the scan_git_repo tool to scan
-   > `https://github.com/anchore/grype-mcp` for vulnerabilities and
-   > licence issues, and summarise the Critical and High findings.
+**Step 3 — ask it to scan something.** In a new chat:
 
-   The in-cluster server clones the repo, runs Syft to catalogue its
-   dependencies, Grype to match them against the vulnerability database,
-   and Grant to check licences — then reports back in the chat. Verified
-   against this exact example before writing it down: a real call
-   completed in 6.2 seconds end to end, correctly returning both the
-   vulnerability and licence findings.
+> Use the scan_git_repo tool to scan
+> `https://github.com/anchore/grype-mcp` for vulnerabilities and
+> licence issues, and summarise the Critical and High findings.
 
-**Scanning something not yet pushed to a repo** (uncommitted local work)
+The server clones the repo *inside the cluster*, runs Syft → Grype →
+Grant against the clone, deletes it, and reports back in the chat — the
+same way a CI runner would, no local filesystem access needed. Verified:
+a real call completed in 6.2 seconds end to end.
+
+Scanning something not yet pushed to a repo (uncommitted local work)
 needs the host-side install instead, since only a process running on your
 own machine can see an unpushed local directory — see
 [phase5-agentic/README.md](phase5-agentic/README.md#connecting-from-claude-desktop-a-local-app-not-this-repos-own-client)
-for that path (`full_scan` with a `dir:` target) and for more on how the
-two modes differ.
-
-`make help` lists every available target.
+for that path.
 
 ## A note on the lab defaults
 

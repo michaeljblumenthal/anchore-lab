@@ -687,18 +687,23 @@
   <section>
     <div class="section-head"><span class="section-num">05</span><h2>Start it in three commands</h2></div>
     <p class="section-sub">In plain terms: three commands install the tools, build a small local Kubernetes cluster, and stand up the whole pipeline inside it &mdash; registry, database, scanning jobs, both MCP servers. No paid licence, no cloud account, no sudo. Runs on a laptop.</p>
-    <pre><code><span class="cmt"># toolchain: syft, grype, grant, k3d, kubectl, helm</span>
+    <pre><code><span class="cmt"># 1. toolchain: syft, grype, grant, k3d, kubectl, helm</span>
 make toolchain
 
-<span class="cmt"># three-node cluster, storage, ingress, RBAC</span>
+<span class="cmt"># 2. three-node cluster, storage, ingress, RBAC</span>
 make cluster
 
-<span class="cmt"># everything else: registry, catalogue, inventory jobs,</span>
-<span class="cmt"># admission control, dashboard, and BOTH MCP servers</span>
+<span class="cmt"># 3. everything else: registry, catalogue, inventory jobs,</span>
+<span class="cmt">#    admission control, dashboard, and BOTH MCP servers</span>
 make bootstrap</code></pre>
+  </section>
 
-    <p style="margin-top:24px;font-size:14.5px;font-weight:600;color:var(--text)">Connect it to Claude Desktop, then scan a repo &mdash; entirely in-cluster</p>
-    <p style="font-size:13.5px;color:var(--text-dim);max-width:66ch">Every tool and both MCP servers already run as pods after <code>make bootstrap</code> &mdash; nothing runs on your laptop for this. Give it a git URL and the server clones the repo <em>inside the cluster</em>, scans the clone, and deletes it, the same way a CI runner would.</p>
+  <section>
+    <div class="section-head"><span class="section-num">06</span><h2>Connect Claude Desktop, scan a repo</h2></div>
+    <p class="section-sub">Everything below runs after the cluster is up. Nothing installs on your laptop &mdash; Claude Desktop just points at the running cluster.</p>
+
+    <p style="font-size:13px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.05em;margin:0 0 6px">Step 1 &mdash; add the connection</p>
+    <p style="font-size:13.5px;color:var(--text-dim);max-width:66ch;margin-top:0">Open <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> and add:</p>
     <pre><code>{
   "mcpServers": {
     "anchore-lab-cluster": {
@@ -707,11 +712,16 @@ make bootstrap</code></pre>
     }
   }
 }</code></pre>
-    <p style="font-size:13.5px;color:var(--text-dim)">Add that to <code>claude_desktop_config.json</code> (restart the app &mdash; no local install needed), then in a new chat:</p>
+
+    <p style="font-size:13px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.05em;margin:20px 0 6px">Step 2 &mdash; restart Claude Desktop</p>
+    <p style="font-size:13.5px;color:var(--text-dim);max-width:66ch;margin-top:0">Nine tools appear under its MCP menu, including <code>scan_git_repo</code>.</p>
+
+    <p style="font-size:13px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.05em;margin:20px 0 6px">Step 3 &mdash; ask it to scan something</p>
+    <p style="font-size:13.5px;color:var(--text-dim);max-width:66ch;margin-top:0">In a new chat:</p>
     <div class="callout good" style="font-style:italic">
       "Use the scan_git_repo tool to scan <code>https://github.com/anchore/grype-mcp</code> for vulnerabilities and licence issues, and summarise the Critical and High findings."
     </div>
-    <p style="font-size:13.5px;color:var(--text-dim);margin-top:10px">The in-cluster server clones the repo, runs Syft to catalogue its dependencies, Grype to match against the vulnerability database, and Grant to check licences, then reports back in the chat. Verified against this exact example before writing it down: a real call completed in 6.2 seconds end to end, correctly returning both vulnerability and licence findings. (Scanning uncommitted local work instead needs the host-side install &mdash; see <a href="phase5-agentic/README.md#connecting-from-claude-desktop-a-local-app-not-this-repos-own-client">phase5-agentic/README.md</a>.)</p>
+    <p style="font-size:13.5px;color:var(--text-dim);margin-top:10px">The server clones the repo <em>inside the cluster</em>, runs Syft &rarr; Grype &rarr; Grant against the clone, deletes it, and reports back in the chat &mdash; the same way a CI runner would, no local filesystem access needed. Verified: a real call completed in 6.2 seconds end to end. (Scanning uncommitted local work instead needs the host-side install &mdash; see <a href="phase5-agentic/README.md#connecting-from-claude-desktop-a-local-app-not-this-repos-own-client">phase5-agentic/README.md</a>.)</p>
   </section>
 
   <footer>
