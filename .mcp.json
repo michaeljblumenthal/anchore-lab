@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "sbom-scan": {
+      "command": "phase5-agentic/sbom-mcp-server/.venv/bin/sbom-mcp-server",
+      "args": []
+    }
+  }
+}

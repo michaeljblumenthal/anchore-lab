@@ -1,0 +1,41 @@
+# MinIO for SBOM object storage. Single-node/single-drive standalone mode —
+# this is a lab, not a durability exercise (bitnami's chart defaults to
+# distributed mode with 4+ drives, which doesn't fit here).
+#
+# image.repository points at bitnamilegacy, not bitnami: as of Aug 2025
+# Bitnami moved its Docker Hub free-tier images behind a paid "Secure
+# Images" subscription; `bitnami/minio` no longer resolves at all, only the
+# frozen/unsupported `bitnamilegacy/minio` mirror does (same tags, same
+# digests, just relocated). See phase3-inventory/README.md finding #5.
+image:
+  repository: bitnamilegacy/minio
+
+console:
+  image:
+    repository: bitnamilegacy/minio-object-browser
+
+mode: standalone
+
+auth:
+  rootUser: labadmin
+  rootPassword: labpassword123  # lab default; never used outside this cluster
+
+defaultBuckets: "sboms"
+
+persistence:
+  enabled: true
+  size: 5Gi
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 256Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+# Console + API both ClusterIP; nothing needs external ingress for MinIO in
+# this lab, only the catalogue service and inventory jobs talk to it,
+# in-cluster.
+service:
+  type: ClusterIP

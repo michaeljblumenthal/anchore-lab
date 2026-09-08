@@ -1,0 +1,30 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: runtime-inventory
+  namespace: anchore-lab-system
+spec:
+  schedule: "*/10 * * * *"  # every 10 minutes; tune once real load is known
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          serviceAccountName: runtime-inventory
+          restartPolicy: OnFailure
+          containers:
+            - name: runtime-inventory
+              image: zot.lab.localhost:8080/lab/runtime-inventory:0.1.0
+              env:
+                - name: CATALOGUE_DSN
+                  value: "postgresql://catalogue:cataloguepassword123@catalogue-db-postgresql:5432/catalogue"
+              resources:
+                requests:
+                  cpu: 50m
+                  memory: 64Mi
+                limits:
+                  cpu: 200m
+                  memory: 128Mi

@@ -1,0 +1,62 @@
+# Minimal deployment + service + ingress used only to prove ingress-with-a-
+# real-hostname works end to end (traefik/whoami echoes back the request it
+# received, useful for confirming routing rather than just "pod is Running").
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whoami
+  namespace: anchore-lab
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: whoami
+  template:
+    metadata:
+      labels:
+        app: whoami
+    spec:
+      serviceAccountName: lab-workload
+      containers:
+        - name: whoami
+          image: traefik/whoami:v1.10
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              cpu: 10m
+              memory: 16Mi
+            limits:
+              cpu: 100m
+              memory: 64Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: whoami
+  namespace: anchore-lab
+spec:
+  selector:
+    app: whoami
+  ports:
+    - port: 80
+      targetPort: 80
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: whoami
+  namespace: anchore-lab
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: lab.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: whoami
+                port:
+                  number: 80

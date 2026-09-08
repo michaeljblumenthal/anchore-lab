@@ -1,0 +1,56 @@
+# Admission control policies for Kyverno. Deliberately audit-mode
+# (validationFailureAction: Audit) rather than Enforce for the first pass:
+# the plan itself predicts the stack likely fails its own policy on first
+# run (see Phase 6), and enforcing blind on day one would just break the
+# lab's own bootstrap. Switch to Enforce once a baseline audit run shows
+# what would actually be blocked.
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-known-registry
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: images-from-approved-registries
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - anchore-lab
+                - anchore-lab-system
+      validate:
+        message: "Image must come from an approved registry (zot.lab.localhost, docker.io, ghcr.io, rancher)"
+        pattern:
+          spec:
+            containers:
+              - image: "zot.lab.localhost:8080/* | docker.io/* | *docker.io/* | ghcr.io/* | rancher/*"
+---
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-resource-limits
+spec:
+  validationFailureAction: Audit
+  background: true
+  rules:
+    - name: containers-must-set-limits
+      match:
+        any:
+          - resources:
+              kinds:
+                - Pod
+              namespaces:
+                - anchore-lab
+                - anchore-lab-system
+      validate:
+        message: "Every container must set CPU and memory limits."
+        pattern:
+          spec:
+            containers:
+              - resources:
+                  limits:
+                    cpu: "?*"
+                    memory: "?*"

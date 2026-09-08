@@ -1,0 +1,20 @@
+*why-lab-plan*
+.DS_Store
+*.log.tmp
+kubeconfig*.yaml
+.env
+*.pem
+*.key
+
+# generated SBOM/scan output — large, regenerable via make targets, not
+# meant to be diffed in git. Curated exemplars get copied out and committed
+# explicitly when they matter for the write-up.
+**/sboms/*.json
+**/scans/*.json
+phase1-toolchain/repos/
+
+# python virtualenvs and build artifacts
+.venv/
+__pycache__/
+*.pyc
+*.egg-info/

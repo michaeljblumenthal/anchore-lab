@@ -1,0 +1,93 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sbom-generate
+  namespace: anchore-lab-system
+spec:
+  # Offset from runtime-inventory (which runs on the 0/10/20... minute marks)
+  # so new images discovered by that job have a couple of minutes to land in
+  # the images table before this job looks for pending rows.
+  schedule: "5,15,25,35,45,55 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      template:
+        spec:
+          serviceAccountName: sbom-jobs
+          restartPolicy: OnFailure
+          containers:
+            - name: sbom-generate
+              image: zot.lab.localhost:8080/lab/sbom-jobs:0.1.0
+              imagePullPolicy: Always
+              command: ["python", "sbom_generate.py"]
+              env:
+                - name: CATALOGUE_DSN
+                  value: "postgresql://catalogue:cataloguepassword123@catalogue-db-postgresql:5432/catalogue"
+                - name: MINIO_ENDPOINT
+                  value: "minio:9000"
+                - name: MINIO_ACCESS_KEY
+                  value: "labadmin"
+                - name: MINIO_SECRET_KEY
+                  value: "labpassword123"
+                # Zot has no TLS cert in this lab (see phase3-inventory/README.md
+                # finding #2/#7's whole saga) — syft defaults to HTTPS for
+                # registry sources same as everything else has in this repo.
+                - name: SYFT_REGISTRY_INSECURE_USE_HTTP
+                  value: "true"
+                - name: SYFT_REGISTRY_INSECURE_SKIP_TLS_VERIFY
+                  value: "true"
+              resources:
+                requests:
+                  cpu: 100m
+                  memory: 128Mi
+                limits:
+                  cpu: 500m
+                  memory: 512Mi
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: sbom-rescan
+  namespace: anchore-lab-system
+spec:
+  # Continuous re-matching cadence: this is the "refresh the vuln DB and
+  # re-match stored SBOMs" job the lab's whole premise rests on. Hourly is
+  # arbitrary for a lab; a real deployment would tune this against how often
+  # the vulnerability feed actually updates meaningfully.
+  schedule: "30 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      activeDeadlineSeconds: 1800
+      template:
+        spec:
+          serviceAccountName: sbom-jobs
+          restartPolicy: OnFailure
+          containers:
+            - name: sbom-rescan
+              image: zot.lab.localhost:8080/lab/sbom-jobs:0.1.0
+              imagePullPolicy: Always
+              command: ["python", "sbom_rescan.py"]
+              env:
+                - name: CATALOGUE_DSN
+                  value: "postgresql://catalogue:cataloguepassword123@catalogue-db-postgresql:5432/catalogue"
+                - name: MINIO_ENDPOINT
+                  value: "minio:9000"
+                - name: MINIO_ACCESS_KEY
+                  value: "labadmin"
+                - name: MINIO_SECRET_KEY
+                  value: "labpassword123"
+              resources:
+                requests:
+                  cpu: 200m
+                  memory: 256Mi
+                limits:
+                  cpu: 1000m
+                  memory: 1Gi

@@ -1,0 +1,58 @@
+# Grafana over the catalogue database. Lab-grade: admin/admin, ingress
+# behind Traefik, no persistence beyond the default PVC.
+adminUser: admin
+adminPassword: admin  # lab default; never used outside this cluster
+
+persistence:
+  enabled: true
+  size: 1Gi
+
+ingress:
+  enabled: true
+  ingressClassName: traefik
+  hosts:
+    - grafana.lab.localhost
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Wire the catalogue Postgres as a datasource up front so the dashboard work
+# later in this phase doesn't need a manual click-through step. uid must
+# match the datasource uid referenced by grafana-dashboard-catalogue.json's
+# panels, or the dashboard's queries silently fail to bind.
+datasources:
+  datasources.yaml:
+    apiVersion: 1
+    datasources:
+      - name: catalogue
+        uid: catalogue
+        type: postgres
+        url: catalogue-db-postgresql.anchore-lab-system.svc.cluster.local:5432
+        database: catalogue
+        user: catalogue
+        secureJsonData:
+          password: cataloguepassword123
+        jsonData:
+          sslmode: disable
+          postgresVersion: 1500
+
+dashboardProviders:
+  dashboardproviders.yaml:
+    apiVersion: 1
+    providers:
+      - name: catalogue
+        orgId: 1
+        folder: ""
+        type: file
+        disableDeletion: false
+        editable: true
+        options:
+          path: /var/lib/grafana/dashboards/catalogue
+
+dashboardsConfigMaps:
+  catalogue: "grafana-dashboard-catalogue"

@@ -1,0 +1,41 @@
+# Dedicated service account for lab workloads, scoped to read/write only the
+# resource kinds they actually need within anchore-lab. No cluster-admin
+# anywhere. This will be the account Phase 3's inventory CronJob runs as,
+# extended later with read access to pods/images cluster-wide (that needs a
+# ClusterRole, added when Phase 3 actually needs it — not granted early
+# "just in case").
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: lab-workload
+  namespace: anchore-lab
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: lab-workload-role
+  namespace: anchore-lab
+rules:
+  - apiGroups: [""]
+    resources: ["pods", "services", "configmaps", "persistentvolumeclaims"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["apps"]
+    resources: ["deployments", "replicasets"]
+    verbs: ["get", "list", "watch"]
+  - apiGroups: ["batch"]
+    resources: ["jobs", "cronjobs"]
+    verbs: ["get", "list", "watch", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: lab-workload-binding
+  namespace: anchore-lab
+subjects:
+  - kind: ServiceAccount
+    name: lab-workload
+    namespace: anchore-lab
+roleRef:
+  kind: Role
+  name: lab-workload-role
+  apiGroup: rbac.authorization.k8s.io

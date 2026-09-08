@@ -1,0 +1,16 @@
+# Shared image for sbom_generate.py and sbom_rescan.py — both need syft
+# and/or grype on PATH plus the Python catalogue/MinIO client libraries.
+FROM python:3.12-slim
+
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Anchore's own install.sh scripts, same mechanism used on the host in
+# phase1-toolchain/install.sh — pulls prebuilt binaries, no compiler needed.
+RUN curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin \
+    && curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
+
+WORKDIR /app
+COPY requirements-sbom.txt .
+RUN pip install --no-cache-dir -r requirements-sbom.txt
+COPY sbom_generate.py sbom_rescan.py .

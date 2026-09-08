@@ -1,0 +1,61 @@
+# Zot (goharbor/CNCF-adjacent OCI-native registry) in place of Harbor.
+#
+# Deviation from the plan's named choice (Harbor), recorded here and in
+# phase3-inventory/README.md finding #1: Harbor's official images
+# (goharbor/harbor-core et al.) are amd64-only with no arm64 manifest, and
+# crash with a Go nil-pointer panic when run emulated on an arm64 k3d node
+# on this Apple Silicon machine. k3d has no mechanism to force its node
+# containers to run as amd64 (no --platform flag, doesn't honour
+# DOCKER_DEFAULT_PLATFORM), so "just emulate it" wasn't actually available
+# without deeper containerd/runtimeClass surgery. Zot is a genuinely
+# multi-arch, arm64-native OCI registry and is lighter besides — a real,
+# fully-functional OCI distribution-spec registry, just without Harbor's
+# UI/project/RBAC layer, which this lab doesn't otherwise use.
+replicaCount: 1
+
+service:
+  type: ClusterIP
+  port: 5000
+  # Fixed ClusterIP, not the default random one: k3d's containerd needs
+  # Zot's address baked into registries.yaml at cluster-create time (see
+  # phase2-cluster/registries.yaml's comment), which is before Zot exists
+  # and a real ClusterIP could be read back. Picking a fixed, known-free
+  # address in the k3s default service CIDR (10.43.0.0/16) breaks that
+  # chicken-and-egg dependency instead of trying to sequence around it.
+  clusterIP: "10.43.0.53"
+
+ingress:
+  enabled: true
+  className: traefik
+  hosts:
+    - host: zot.lab.localhost
+      paths:
+        - path: /
+  annotations: {}
+
+mountConfig: true
+configFiles:
+  config.json: |-
+    {
+      "storage": { "rootDirectory": "/var/lib/registry" },
+      "http": {
+        "address": "0.0.0.0",
+        "port": "5000",
+        "readTimeout": "60s",
+        "writeTimeout": "60s"
+      },
+      "log": { "level": "info" }
+    }
+
+persistence: true
+pvc:
+  accessModes: ["ReadWriteOnce"]
+  storage: 5Gi
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 128Mi
+  limits:
+    cpu: 300m
+    memory: 512Mi

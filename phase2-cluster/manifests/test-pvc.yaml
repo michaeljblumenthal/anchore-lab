@@ -1,0 +1,38 @@
+# Throwaway PVC + consuming pod used to confirm the default storage class
+# actually binds. Deleted immediately after bootstrap.sh confirms Bound
+# status.
+#
+# Must include a pod: local-path's VolumeBindingMode is WaitForFirstConsumer
+# (correctly — it defers binding until it knows which node the volume needs
+# to be local to), so a bare PVC with no consumer sits in Pending forever.
+# That is not a broken storage class, it's a misconfigured test — first
+# attempt at this omitted the pod and stayed Pending for the full timeout.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: test-pvc
+  namespace: anchore-lab
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 100Mi
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: test-pvc-consumer
+  namespace: anchore-lab
+spec:
+  containers:
+    - name: busybox
+      image: busybox:1.36
+      command: ["sh", "-c", "echo bound && sleep 3600"]
+      volumeMounts:
+        - name: data
+          mountPath: /data
+  volumes:
+    - name: data
+      persistentVolumeClaim:
+        claimName: test-pvc

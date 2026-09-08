@@ -1,0 +1,44 @@
+# The runtime-inventory job needs to see which images are running across
+# every namespace, which a namespaced Role cannot grant — this is exactly
+# the ClusterRole deferred in phase2-cluster/README.md's "notes for later
+# phases". Scoped to read-only on pods only: it enumerates images, it does
+# not need secrets, configmaps, or write access to anything.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: runtime-inventory
+  namespace: anchore-lab-system
+---
+# Separate, narrower ServiceAccount for the SBOM generate/rescan jobs — they
+# only talk to Postgres/MinIO in this namespace, they never need the
+# cluster-wide pod-listing access runtime-inventory has. Default Kubernetes
+# RBAC (no bindings) already denies everything by default, so this bare
+# ServiceAccount with no Role/RoleBinding is intentional: these jobs make no
+# Kubernetes API calls at all, they only need a valid identity to run as.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sbom-jobs
+  namespace: anchore-lab-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: runtime-inventory-reader
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: runtime-inventory-reader-binding
+subjects:
+  - kind: ServiceAccount
+    name: runtime-inventory
+    namespace: anchore-lab-system
+roleRef:
+  kind: ClusterRole
+  name: runtime-inventory-reader
+  apiGroup: rbac.authorization.k8s.io

@@ -1,0 +1,74 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://anchore-lab.internal/vex/python-3.12-slim-perl-base",
+  "author": "anchore-lab build",
+  "timestamp": "2026-09-08T00:00:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": {
+        "name": "CVE-2026-8376"
+      },
+      "products": [
+        {
+          "@id": "pkg:deb/debian/perl-base@5.40.1-6?arch=arm64&distro=debian-13.6&upstream=perl"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "perl-base ships as a transitive dependency of the debian:trixie base layer used by python:3.12-slim. No process in this lab's images or jobs invokes perl or any perl-base binary (checked: no ENTRYPOINT, CMD, or job script references perl, and the interpreter is not on any invoked PATH). The package is present in the image filesystem but never executed."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-13221"
+      },
+      "products": [
+        {
+          "@id": "pkg:deb/debian/perl-base@5.40.1-6?arch=arm64&distro=debian-13.6&upstream=perl"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Same rationale as CVE-2026-8376: perl-base is present but unexecuted in this deployment."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-42496"
+      },
+      "products": [
+        {
+          "@id": "pkg:deb/debian/perl-base@5.40.1-6?arch=arm64&distro=debian-13.6&upstream=perl"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Same rationale as CVE-2026-8376: perl-base is present but unexecuted in this deployment."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-12087"
+      },
+      "products": [
+        {
+          "@id": "pkg:deb/debian/perl-base@5.40.1-6?arch=arm64&distro=debian-13.6&upstream=perl"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Same rationale as CVE-2026-8376: perl-base is present but unexecuted in this deployment."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-57433"
+      },
+      "products": [
+        {
+          "@id": "pkg:deb/debian/perl-base@5.40.1-6?arch=arm64&distro=debian-13.6&upstream=perl"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Same rationale as CVE-2026-8376: perl-base is present but unexecuted in this deployment."
+    }
+  ]
+}

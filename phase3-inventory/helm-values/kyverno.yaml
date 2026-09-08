@@ -1,0 +1,11 @@
+# Kyverno with reduced replica counts — the chart defaults to 3 replicas
+# per controller for HA, which is unnecessary and resource-heavy for a lab
+# on a single-VM cluster.
+admissionController:
+  replicas: 1
+backgroundController:
+  replicas: 1
+cleanupController:
+  replicas: 1
+reportsController:
+  replicas: 1

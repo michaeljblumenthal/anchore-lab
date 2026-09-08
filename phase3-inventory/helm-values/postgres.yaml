@@ -1,0 +1,21 @@
+# Postgres for the image-digest -> stored-SBOM catalogue. Single instance,
+# no replication — this is a lab, not an HA exercise (same rationale as
+# Harbor and MinIO above).
+auth:
+  username: catalogue
+  password: cataloguepassword123  # lab default; never used outside this cluster
+  database: catalogue
+
+primary:
+  persistence:
+    enabled: true
+    size: 2Gi
+  resources:
+    requests:
+      cpu: 100m
+      memory: 256Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+architecture: standalone

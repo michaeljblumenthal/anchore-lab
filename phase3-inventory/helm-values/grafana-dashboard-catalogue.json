@@ -1,0 +1,72 @@
+{
+  "title": "SBOM Catalogue",
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "stat",
+      "title": "Images tracked",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        { "datasource": { "type": "postgres", "uid": "catalogue" }, "rawSql": "SELECT count(*) FROM images", "format": "table" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "SBOMs stored",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        { "datasource": { "type": "postgres", "uid": "catalogue" }, "rawSql": "SELECT count(*) FROM sboms", "format": "table" }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Open findings (latest scan per SBOM)",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "catalogue" },
+          "format": "table",
+          "rawSql": "SELECT count(*) FROM findings f JOIN scan_results sr ON sr.id = f.scan_result_id WHERE sr.id IN (SELECT max(id) FROM scan_results GROUP BY sbom_id) AND f.vex_status IS DISTINCT FROM 'not_affected'"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Critical findings",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "catalogue" },
+          "format": "table",
+          "rawSql": "SELECT sum(critical_count) FROM scan_results WHERE id IN (SELECT max(id) FROM scan_results GROUP BY sbom_id)"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Findings by severity, latest scan per image",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 4 },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "catalogue" },
+          "format": "table",
+          "rawSql": "SELECT i.repository, i.tag, sr.critical_count AS critical, sr.high_count AS high, sr.medium_count AS medium, sr.low_count AS low, sr.negligible_count AS negligible, sr.scanned_at FROM scan_results sr JOIN sboms s ON s.id = sr.sbom_id JOIN images i ON i.id = s.image_id WHERE sr.id IN (SELECT max(id) FROM scan_results GROUP BY sbom_id) ORDER BY sr.critical_count DESC, sr.high_count DESC"
+        }
+      ]
+    },
+    {
+      "type": "table",
+      "title": "Most common CVEs across all tracked images",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 12 },
+      "targets": [
+        {
+          "datasource": { "type": "postgres", "uid": "catalogue" },
+          "format": "table",
+          "rawSql": "SELECT vulnerability_id, severity, count(DISTINCT image_id) AS affected_images FROM findings GROUP BY vulnerability_id, severity ORDER BY affected_images DESC LIMIT 25"
+        }
+      ]
+    }
+  ],
+  "schemaVersion": 39,
+  "version": 1
+}

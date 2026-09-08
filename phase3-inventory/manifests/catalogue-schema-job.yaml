@@ -1,0 +1,89 @@
+# One-shot Job that loads schema.sql into the catalogue database. Uses a
+# ConfigMap so the SQL lives in this repo as the source of truth rather than
+# baked into an image. Safe to re-run: every statement is CREATE ... IF NOT
+# EXISTS.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: catalogue-schema
+  namespace: anchore-lab-system
+data:
+  schema.sql: |
+    CREATE TABLE IF NOT EXISTS images (
+        id              SERIAL PRIMARY KEY,
+        digest          TEXT NOT NULL UNIQUE,
+        repository      TEXT NOT NULL,
+        tag             TEXT,
+        first_seen      TIMESTAMPTZ NOT NULL DEFAULT now(),
+        last_seen       TIMESTAMPTZ NOT NULL DEFAULT now(),
+        running_in      JSONB
+    );
+    CREATE INDEX IF NOT EXISTS idx_images_repository ON images (repository);
+
+    CREATE TABLE IF NOT EXISTS sboms (
+        id              SERIAL PRIMARY KEY,
+        image_id        INTEGER NOT NULL REFERENCES images(id) ON DELETE CASCADE,
+        format          TEXT NOT NULL DEFAULT 'syft-json',
+        minio_bucket    TEXT NOT NULL,
+        minio_key       TEXT NOT NULL,
+        package_count   INTEGER,
+        generated_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+        syft_version    TEXT,
+        UNIQUE (image_id, format)
+    );
+
+    CREATE TABLE IF NOT EXISTS scan_results (
+        id              SERIAL PRIMARY KEY,
+        sbom_id         INTEGER NOT NULL REFERENCES sboms(id) ON DELETE CASCADE,
+        scanned_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+        grype_version   TEXT,
+        grype_db_built  TIMESTAMPTZ,
+        total_matches   INTEGER NOT NULL,
+        critical_count  INTEGER NOT NULL DEFAULT 0,
+        high_count      INTEGER NOT NULL DEFAULT 0,
+        medium_count    INTEGER NOT NULL DEFAULT 0,
+        low_count       INTEGER NOT NULL DEFAULT 0,
+        negligible_count INTEGER NOT NULL DEFAULT 0,
+        raw_result      JSONB NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_scan_results_sbom_id ON scan_results (sbom_id);
+    CREATE INDEX IF NOT EXISTS idx_scan_results_scanned_at ON scan_results (scanned_at);
+
+    CREATE TABLE IF NOT EXISTS findings (
+        id              SERIAL PRIMARY KEY,
+        scan_result_id  INTEGER NOT NULL REFERENCES scan_results(id) ON DELETE CASCADE,
+        image_id        INTEGER NOT NULL REFERENCES images(id) ON DELETE CASCADE,
+        vulnerability_id TEXT NOT NULL,
+        severity        TEXT NOT NULL,
+        package_name    TEXT NOT NULL,
+        package_version TEXT,
+        fix_state       TEXT,
+        vex_status      TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_findings_vuln_id ON findings (vulnerability_id);
+    CREATE INDEX IF NOT EXISTS idx_findings_image_id ON findings (image_id);
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: catalogue-schema
+  namespace: anchore-lab-system
+spec:
+  backoffLimit: 3
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: psql
+          image: postgres:16-alpine
+          command:
+            - sh
+            - -c
+            - psql "postgresql://catalogue:cataloguepassword123@catalogue-db-postgresql:5432/catalogue" -f /schema/schema.sql
+          volumeMounts:
+            - name: schema
+              mountPath: /schema
+      volumes:
+        - name: schema
+          configMap:
+            name: catalogue-schema
