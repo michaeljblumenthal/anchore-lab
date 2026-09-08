@@ -260,13 +260,16 @@ findings — this document is the synthesis, those are the primary sources.
 
 ## Quickstart
 
-In plain terms: three commands install the tools, build a small local
-Kubernetes cluster, and stand up the whole pipeline inside it — the
-registry, the database, the scanning jobs, and both MCP servers. Nothing
-here needs a paid licence, a cloud account, or root/sudo access; it all
-runs on a laptop.
+In plain terms: clone the repo, then three commands install the tools,
+build a small local Kubernetes cluster, and stand up the whole pipeline
+inside it — the registry, the database, the scanning jobs, and both MCP
+servers. Nothing here needs a paid licence, a cloud account, or root/sudo
+access; it all runs on a laptop.
 
 ```sh
+git clone https://github.com/michaeljblumenthal/anchore-lab
+cd anchore-lab
+
 make toolchain    # syft, grype, grant, docker (via colima), kubectl, helm, k3d, k9s
 make cluster       # bring up the k3d cluster
 make bootstrap     # everything else: registry, storage, catalogue, jobs,
