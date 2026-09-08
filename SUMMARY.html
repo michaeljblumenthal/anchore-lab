@@ -1,0 +1,690 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Anchore Lab Architecture</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap');
+
+  :root {
+    --bg: #0b0e14;
+    --surface: #12161f;
+    --surface-raised: #171c28;
+    --border: #232a3a;
+    --border-strong: #303a52;
+    --text: #dbe1ee;
+    --text-dim: #8891a5;
+    --text-faint: #5a6478;
+    --accent: #5ec8d8;
+    --accent-dim: #3a7a86;
+    --accent-glow: rgba(94, 200, 216, 0.14);
+    --good: #6fcf97;
+    --good-dim: #3d7a58;
+    --warn: #e8b567;
+    --crit: #e2685f;
+    --mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+    --sans: 'IBM Plex Sans', -apple-system, sans-serif;
+  }
+
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) {
+      --bg: #f5f6f8;
+      --surface: #ffffff;
+      --surface-raised: #ffffff;
+      --border: #dde1e8;
+      --border-strong: #c5cbd6;
+      --text: #1a2030;
+      --text-dim: #5a6478;
+      --text-faint: #8891a5;
+      --accent: #1c7d8c;
+      --accent-dim: #5ec8d8;
+      --accent-glow: rgba(28, 125, 140, 0.08);
+      --good: #2a8556;
+      --good-dim: #6fcf97;
+      --warn: #a86a1f;
+      --crit: #b8352c;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f5f6f8;
+    --surface: #ffffff;
+    --surface-raised: #ffffff;
+    --border: #dde1e8;
+    --border-strong: #c5cbd6;
+    --text: #1a2030;
+    --text-dim: #5a6478;
+    --text-faint: #8891a5;
+    --accent: #1c7d8c;
+    --accent-dim: #5ec8d8;
+    --accent-glow: rgba(28, 125, 140, 0.08);
+    --good: #2a8556;
+    --good-dim: #6fcf97;
+    --warn: #a86a1f;
+    --crit: #b8352c;
+  }
+
+  * { box-sizing: border-box; }
+  html { color-scheme: light dark; }
+
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 15px;
+    line-height: 1.6;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  .page {
+    max-width: 880px;
+    margin: 0 auto;
+    padding: 56px 28px 96px;
+  }
+
+  /* ---------- Masthead ---------- */
+
+  .masthead {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 24px;
+    padding-bottom: 28px;
+    margin-bottom: 40px;
+    border-bottom: 1px solid var(--border-strong);
+  }
+  .masthead-left .eyebrow {
+    font-family: var(--mono);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin: 0 0 10px;
+  }
+  h1 {
+    font-family: var(--sans);
+    font-weight: 700;
+    font-size: 34px;
+    line-height: 1.15;
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+    text-wrap: balance;
+  }
+  .subtitle {
+    color: var(--text-dim);
+    font-size: 15.5px;
+    margin: 0;
+    max-width: 60ch;
+  }
+  .masthead-right {
+    text-align: right;
+    flex-shrink: 0;
+  }
+  .masthead-right .repo-link {
+    font-family: var(--mono);
+    font-size: 12.5px;
+    color: var(--accent);
+    text-decoration: none;
+    border-bottom: 1px solid var(--accent-dim);
+    padding-bottom: 1px;
+  }
+  .masthead-right .repo-link:hover { color: var(--text); border-color: var(--text); }
+  .masthead-right .date {
+    display: block;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text-faint);
+    margin-top: 8px;
+  }
+
+  /* ---------- Section rhythm ---------- */
+
+  section { margin-bottom: 52px; }
+
+  .section-head {
+    display: flex;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 18px;
+  }
+  .section-num {
+    font-family: var(--mono);
+    font-size: 12px;
+    color: var(--text-faint);
+    letter-spacing: 0.04em;
+  }
+  h2 {
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 20px;
+    letter-spacing: -0.005em;
+    margin: 0;
+    text-wrap: balance;
+  }
+  .section-sub {
+    color: var(--text-dim);
+    font-size: 14.5px;
+    margin: -8px 0 22px;
+    max-width: 66ch;
+  }
+
+  p { margin: 0 0 14px; max-width: 68ch; }
+  p:last-child { margin-bottom: 0; }
+
+  code, .mono {
+    font-family: var(--mono);
+    font-size: 0.88em;
+  }
+  code {
+    background: var(--surface-raised);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 6px;
+    color: var(--accent);
+  }
+
+  /* ---------- Stat strip ---------- */
+
+  .stat-strip {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+  }
+  .stat {
+    background: var(--surface);
+    padding: 18px 16px;
+  }
+  .stat-value {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 26px;
+    color: var(--text);
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .stat-value.accent { color: var(--accent); }
+  .stat-value.crit { color: var(--crit); }
+  .stat-label {
+    font-size: 12px;
+    color: var(--text-dim);
+    line-height: 1.35;
+  }
+
+  /* ---------- Architecture diagram ---------- */
+
+  .diagram-frame {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 8px;
+    overflow-x: auto;
+  }
+  .diagram-frame svg { display: block; min-width: 780px; }
+
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 18px;
+    margin-top: 14px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text-dim);
+  }
+  .legend-item { display: flex; align-items: center; gap: 7px; }
+  .legend-swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+
+  /* ---------- Node cards ---------- */
+
+  .node-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+  }
+  .node-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px;
+  }
+  .node-card.control {
+    border-color: var(--accent-dim);
+    background: linear-gradient(180deg, var(--accent-glow), var(--surface) 40%);
+  }
+  .node-role {
+    font-family: var(--mono);
+    font-size: 10.5px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--accent);
+    margin-bottom: 6px;
+  }
+  .node-card:not(.control) .node-role { color: var(--text-faint); }
+  .node-name {
+    font-family: var(--mono);
+    font-weight: 600;
+    font-size: 13.5px;
+    margin-bottom: 12px;
+    word-break: break-all;
+  }
+  .node-facts { display: flex; flex-direction: column; gap: 6px; }
+  .node-fact {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    font-size: 12px;
+  }
+  .node-fact dt { color: var(--text-faint); }
+  .node-fact dd { margin: 0; font-family: var(--mono); color: var(--text-dim); text-align: right; }
+  .node-pods {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    line-height: 1.7;
+  }
+  .node-pods .pod-count { color: var(--accent); font-weight: 600; }
+
+  /* ---------- Network table ---------- */
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    overflow: hidden;
+    font-size: 13px;
+  }
+  .data-table thead th {
+    text-align: left;
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--text-faint);
+    padding: 10px 14px;
+    background: var(--surface-raised);
+    border-bottom: 1px solid var(--border);
+  }
+  .data-table td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    font-family: var(--mono);
+    color: var(--text-dim);
+    vertical-align: top;
+  }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table td.emph { color: var(--text); }
+  .table-scroll { overflow-x: auto; border-radius: 10px; }
+  .table-scroll .data-table { border-radius: 0; }
+
+  /* ---------- Tool cards (MCP) ---------- */
+
+  .server-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px 22px;
+    margin-bottom: 16px;
+  }
+  .server-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 4px;
+  }
+  .server-name {
+    font-family: var(--mono);
+    font-weight: 700;
+    font-size: 15px;
+    color: var(--text);
+  }
+  .server-count {
+    font-family: var(--mono);
+    font-size: 11px;
+    color: var(--accent);
+    background: var(--accent-glow);
+    border: 1px solid var(--accent-dim);
+    border-radius: 999px;
+    padding: 3px 10px;
+    white-space: nowrap;
+  }
+  .server-desc { color: var(--text-dim); font-size: 13.5px; margin: 6px 0 16px; max-width: 62ch; }
+
+  .tool-list { display: flex; flex-direction: column; gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .tool-row {
+    background: var(--surface);
+    padding: 10px 14px;
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    gap: 14px;
+    align-items: baseline;
+  }
+  .tool-row .tool-name { font-family: var(--mono); font-size: 12.5px; color: var(--accent); font-weight: 600; }
+  .tool-row .tool-desc { font-size: 12.5px; color: var(--text-dim); }
+
+  /* ---------- Callout ---------- */
+
+  .callout {
+    border-left: 3px solid var(--accent-dim);
+    background: var(--accent-glow);
+    border-radius: 0 8px 8px 0;
+    padding: 14px 18px;
+    font-size: 13.5px;
+    color: var(--text-dim);
+  }
+  .callout strong { color: var(--text); }
+  .callout.warn { border-left-color: var(--warn); background: color-mix(in srgb, var(--warn) 12%, transparent); }
+  .callout.good { border-left-color: var(--good-dim); background: color-mix(in srgb, var(--good) 12%, transparent); }
+
+  /* ---------- Code block ---------- */
+
+  pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 18px;
+    overflow-x: auto;
+    margin: 0;
+  }
+  pre code {
+    background: none;
+    border: none;
+    padding: 0;
+    color: var(--text-dim);
+    font-size: 12.5px;
+    line-height: 1.65;
+  }
+  pre code .cmt { color: var(--text-faint); }
+  pre code .kw { color: var(--accent); }
+
+  /* ---------- Footer ---------- */
+
+  footer {
+    margin-top: 64px;
+    padding-top: 24px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 16px;
+    font-family: var(--mono);
+    font-size: 11.5px;
+    color: var(--text-faint);
+  }
+  footer a { color: var(--text-faint); }
+
+  @media (max-width: 720px) {
+    .stat-strip { grid-template-columns: repeat(2, 1fr); }
+    .node-grid { grid-template-columns: 1fr; }
+    .masthead { flex-direction: column; align-items: flex-start; }
+    .masthead-right { text-align: left; }
+    .tool-row { grid-template-columns: 1fr; gap: 3px; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="masthead">
+    <div class="masthead-left">
+      <p class="eyebrow">Infrastructure &amp; Agentic Tooling</p>
+      <h1>SBOM-first inventory on a self-hosted Kubernetes cluster</h1>
+      <p class="subtitle">A working, open-source continuous vulnerability pipeline &mdash; built node by node, wired to an MCP server two people can run today.</p>
+    </div>
+    <div class="masthead-right">
+      <a class="repo-link" href="https://github.com/michaeljblumenthal/anchore-lab">github.com/michaeljblumenthal/anchore-lab</a>
+      <span class="date">Built with Claude Code &middot; September 2026</span>
+    </div>
+  </div>
+
+  <section>
+    <div class="stat-strip">
+      <div class="stat">
+        <div class="stat-value accent">19</div>
+        <div class="stat-label">images tracked, cluster-wide, self included</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value">5,099</div>
+        <div class="stat-label">packages catalogued across those images</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value crit">2,406</div>
+        <div class="stat-label">findings before triage &mdash; 185 critical</div>
+      </div>
+      <div class="stat">
+        <div class="stat-value accent">2.58s</div>
+        <div class="stat-label">to answer &ldquo;is this CVE present&rdquo; by query</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">01</span><h2>What's running</h2></div>
+    <p class="section-sub">Three-node k3d cluster on a local VM &mdash; one control plane, two workers, Flannel overlay networking, a self-hosted OCI registry, and the full SBOM pipeline described below.</p>
+    <div class="diagram-frame">
+      <svg viewBox="0 0 920 420" xmlns="http://www.w3.org/2000/svg">
+        <!-- host -->
+        <rect x="8" y="8" width="904" height="404" rx="14" fill="none" stroke="#303a52" stroke-width="1" stroke-dasharray="3 4"/>
+        <text x="26" y="32" font-family="JetBrains Mono, monospace" font-size="11" fill="#5a6478" letter-spacing="0.05em">HOST · macOS · Colima VM (6 vCPU / 12GB)</text>
+
+        <!-- docker network -->
+        <rect x="30" y="46" width="860" height="352" rx="12" fill="#12161f" stroke="#232a3a" stroke-width="1"/>
+        <text x="48" y="68" font-family="JetBrains Mono, monospace" font-size="11" fill="#5ec8d8" letter-spacing="0.05em">DOCKER NETWORK · k3d-anchore-lab · 172.18.0.0/16</text>
+
+        <!-- LB -->
+        <rect x="380" y="84" width="160" height="40" rx="8" fill="#171c28" stroke="#5ec8d8" stroke-width="1.4"/>
+        <text x="460" y="100" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="11" font-weight="600" fill="#dbe1ee">serverlb</text>
+        <text x="460" y="114" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#8891a5">:8080 → :80  ·  :8443 → :443</text>
+
+        <!-- 3 nodes -->
+        <g>
+          <rect x="60" y="160" width="250" height="220" rx="10" fill="#171c28" stroke="#5ec8d8" stroke-width="1.4"/>
+          <text x="76" y="184" font-family="JetBrains Mono, monospace" font-size="9.5" letter-spacing="0.06em" fill="#5ec8d8">CONTROL PLANE</text>
+          <text x="76" y="202" font-family="JetBrains Mono, monospace" font-size="12" font-weight="700" fill="#dbe1ee">server-0</text>
+          <text x="76" y="218" font-family="JetBrains Mono, monospace" font-size="10" fill="#8891a5">172.18.0.3</text>
+          <text x="76" y="232" font-family="JetBrains Mono, monospace" font-size="10" fill="#8891a5">pods 10.42.1.0/24</text>
+          <line x1="76" y1="244" x2="286" y2="244" stroke="#232a3a"/>
+          <text x="76" y="262" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">CoreDNS</text>
+          <text x="76" y="278" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">Traefik ingress</text>
+          <text x="76" y="294" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">MinIO + console</text>
+          <text x="76" y="310" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">kyverno-reports</text>
+          <text x="76" y="326" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">whoami (1/2)</text>
+        </g>
+
+        <g>
+          <rect x="335" y="160" width="250" height="220" rx="10" fill="#171c28" stroke="#232a3a" stroke-width="1.4"/>
+          <text x="351" y="184" font-family="JetBrains Mono, monospace" font-size="9.5" letter-spacing="0.06em" fill="#8891a5">WORKER</text>
+          <text x="351" y="202" font-family="JetBrains Mono, monospace" font-size="12" font-weight="700" fill="#dbe1ee">agent-0</text>
+          <text x="351" y="218" font-family="JetBrains Mono, monospace" font-size="10" fill="#8891a5">172.18.0.5</text>
+          <text x="351" y="232" font-family="JetBrains Mono, monospace" font-size="10" fill="#8891a5">pods 10.42.2.0/24</text>
+          <line x1="351" y1="244" x2="561" y2="244" stroke="#232a3a"/>
+          <text x="351" y="262" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">Postgres catalogue</text>
+          <text x="351" y="278" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">kyverno-admission</text>
+          <text x="351" y="294" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">kyverno-background</text>
+          <text x="351" y="310" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">local-path-provisioner</text>
+          <text x="351" y="326" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">whoami (2/2)</text>
+        </g>
+
+        <g>
+          <rect x="610" y="160" width="250" height="220" rx="10" fill="#171c28" stroke="#232a3a" stroke-width="1.4"/>
+          <text x="626" y="184" font-family="JetBrains Mono, monospace" font-size="9.5" letter-spacing="0.06em" fill="#8891a5">WORKER</text>
+          <text x="626" y="202" font-family="JetBrains Mono, monospace" font-size="12" font-weight="700" fill="#dbe1ee">agent-1</text>
+          <text x="626" y="218" font-family="JetBrains Mono, monospace" font-size="10" fill="#8891a5">172.18.0.4</text>
+          <text x="626" y="232" font-family="JetBrains Mono, monospace" font-size="10" fill="#8891a5">pods 10.42.0.0/24</text>
+          <line x1="626" y1="244" x2="836" y2="244" stroke="#232a3a"/>
+          <text x="626" y="262" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">Zot registry (:5000)</text>
+          <text x="626" y="278" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">Grafana</text>
+          <text x="626" y="294" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">runtime-inventory ⏱</text>
+          <text x="626" y="310" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">sbom-generate ⏱</text>
+          <text x="626" y="326" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">sbom-rescan ⏱</text>
+        </g>
+
+        <!-- connectors LB -> nodes -->
+        <path d="M 460 124 L 460 145 L 185 145 L 185 160" fill="none" stroke="#303a52" stroke-width="1.2"/>
+        <path d="M 460 124 L 460 160" fill="none" stroke="#303a52" stroke-width="1.2"/>
+        <path d="M 460 124 L 460 145 L 735 145 L 735 160" fill="none" stroke="#303a52" stroke-width="1.2"/>
+
+        <!-- host port labels -->
+        <text x="460" y="66" text-anchor="middle" font-family="JetBrains Mono, monospace" font-size="9.5" fill="#5a6478">host :8080 / :8443</text>
+      </svg>
+    </div>
+    <div class="legend">
+      <div class="legend-item"><span class="legend-swatch" style="background:#5ec8d8"></span>control plane / registry endpoint</div>
+      <div class="legend-item"><span class="legend-swatch" style="background:#8891a5"></span>worker node</div>
+      <div class="legend-item">⏱ CronJob workload (10&ndash;60 min cadence)</div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">02</span><h2>Node-by-node</h2></div>
+    <p class="section-sub">Each node is a Docker container standing in for a physical or VM host &mdash; k3d's standard pattern for a disposable, laptop-class Kubernetes cluster. Pod placement below is live, not illustrative.</p>
+    <div class="node-grid">
+      <div class="node-card control">
+        <div class="node-role">Control plane</div>
+        <div class="node-name">k3d-anchore-lab-server-0</div>
+        <dl class="node-facts">
+          <div class="node-fact"><dt>Node IP</dt><dd>172.18.0.3</dd></div>
+          <div class="node-fact"><dt>Pod CIDR</dt><dd>10.42.1.0/24</dd></div>
+          <div class="node-fact"><dt>Runtime</dt><dd>containerd 2.2.3</dd></div>
+          <div class="node-fact"><dt>K3s</dt><dd>v1.35.5+k3s1</dd></div>
+        </dl>
+        <div class="node-pods"><span class="pod-count">6</span> pods &middot; CoreDNS, Traefik, MinIO ×2, kyverno-reports, whoami</div>
+      </div>
+      <div class="node-card">
+        <div class="node-role">Worker</div>
+        <div class="node-name">k3d-anchore-lab-agent-0</div>
+        <dl class="node-facts">
+          <div class="node-fact"><dt>Node IP</dt><dd>172.18.0.5</dd></div>
+          <div class="node-fact"><dt>Pod CIDR</dt><dd>10.42.2.0/24</dd></div>
+          <div class="node-fact"><dt>Runtime</dt><dd>containerd 2.2.3</dd></div>
+          <div class="node-fact"><dt>K3s</dt><dd>v1.35.5+k3s1</dd></div>
+        </dl>
+        <div class="node-pods"><span class="pod-count">5</span> pods &middot; Postgres, kyverno-admission, kyverno-background, local-path-provisioner, whoami</div>
+      </div>
+      <div class="node-card">
+        <div class="node-role">Worker</div>
+        <div class="node-name">k3d-anchore-lab-agent-1</div>
+        <dl class="node-facts">
+          <div class="node-fact"><dt>Node IP</dt><dd>172.18.0.4</dd></div>
+          <div class="node-fact"><dt>Pod CIDR</dt><dd>10.42.0.0/24</dd></div>
+          <div class="node-fact"><dt>Runtime</dt><dd>containerd 2.2.3</dd></div>
+          <div class="node-fact"><dt>K3s</dt><dd>v1.35.5+k3s1</dd></div>
+        </dl>
+        <div class="node-pods"><span class="pod-count">6</span> pods &middot; Zot registry, Grafana, metrics-server, and the three scheduled inventory jobs</div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">03</span><h2>Networking, as actually wired</h2></div>
+    <p class="section-sub">Three address families in play, and getting a single job pod to pull from the in-cluster registry meant understanding exactly which layer resolves which one &mdash; this table is the reference that came out of that debugging.</p>
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr><th>Layer</th><th>Address space</th><th>Who resolves it</th><th>Example</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td class="emph">Docker bridge</td>
+            <td>172.18.0.0/16</td>
+            <td>Docker's embedded DNS, host-visible</td>
+            <td>server-0 → 172.18.0.3</td>
+          </tr>
+          <tr>
+            <td class="emph">Pod network (Flannel)</td>
+            <td>10.42.0.0/16</td>
+            <td>CoreDNS &mdash; pod-namespace only, not node-level</td>
+            <td>zot-0 → 10.42.0.8</td>
+          </tr>
+          <tr>
+            <td class="emph">Service network</td>
+            <td>10.43.0.0/16</td>
+            <td>kube-proxy, ClusterIP-stable</td>
+            <td>zot svc → 10.43.0.53 (pinned)</td>
+          </tr>
+          <tr>
+            <td class="emph">Host loopback</td>
+            <td>127.0.0.1</td>
+            <td>k3d's serverlb container-port mapping</td>
+            <td>zot.lab.localhost:8080</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="height:16px"></div>
+    <div class="callout warn">
+      <strong>The registry has two valid addresses, and that's not a bug.</strong> <code>zot.lab.localhost:8080</code> resolves to <code>127.0.0.1</code> on the host &mdash; correct for <code>docker push</code> and CI tooling. But containerd's image-pull path runs at node-network level, outside the pod network where CoreDNS lives, so that same hostname is meaningless inside a node. The fix was pinning Zot's Service to a fixed ClusterIP (<code>10.43.0.53</code>) and rewriting the mirror endpoint in <code>containerd</code>'s <code>registries.yaml</code> at cluster-create time.
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">04</span><h2>The MCP servers</h2></div>
+    <p class="section-sub">Two Model Context Protocol servers, wired into Claude Code today via one <code>.mcp.json</code>. Anyone can point an MCP-capable assistant at a codebase and start asking it to scan, right now &mdash; no cluster required for either.</p>
+
+    <div class="server-block">
+      <div class="server-head">
+        <span class="server-name">sbom-scan</span>
+        <span class="server-count">5 tools · this repo</span>
+      </div>
+      <p class="server-desc">Orchestrates Syft → Grype → Grant as one pipeline against any path, image, or archive &mdash; generates the SBOM once and reuses it for both the vulnerability and licence passes.</p>
+      <div class="tool-list">
+        <div class="tool-row"><span class="tool-name">generate_sbom</span><span class="tool-desc">Syft SBOM in syft-json, spdx-json, or cyclonedx-json</span></div>
+        <div class="tool-row"><span class="tool-name">scan_vulnerabilities</span><span class="tool-desc">Grype against a stored SBOM file</span></div>
+        <div class="tool-row"><span class="tool-name">scan_target</span><span class="tool-desc">Grype directly against an image or directory</span></div>
+        <div class="tool-row"><span class="tool-name">check_licenses</span><span class="tool-desc">Grant licence compliance against an SBOM</span></div>
+        <div class="tool-row"><span class="tool-name">full_scan</span><span class="tool-desc">The whole pipeline, one call, one shared SBOM artefact</span></div>
+      </div>
+    </div>
+
+    <div class="server-block">
+      <div class="server-head">
+        <span class="server-name">grype-mcp</span>
+        <span class="server-count">9 tools · Anchore official</span>
+      </div>
+      <p class="server-desc">The official Anchore server, installed from PyPI &mdash; broader query surface for interrogating the vulnerability database directly, not just scanning artefacts.</p>
+      <div class="tool-list">
+        <div class="tool-row"><span class="tool-name">scan_dir / scan_image</span><span class="tool-desc">Direct Grype scans, no SBOM step</span></div>
+        <div class="tool-row"><span class="tool-name">scan_purl</span><span class="tool-desc">Check one package by Package URL &mdash; <code>pkg:npm/lodash@4.17.20</code></span></div>
+        <div class="tool-row"><span class="tool-name">search_vulns / get_vuln_details</span><span class="tool-desc">Query the Grype DB by CVE, package, or CPE</span></div>
+        <div class="tool-row"><span class="tool-name">get_db_info / update_db</span><span class="tool-desc">Inspect or refresh the vulnerability database</span></div>
+        <div class="tool-row"><span class="tool-name">find_grype / update_grype</span><span class="tool-desc">Locate or install the Grype binary itself</span></div>
+      </div>
+    </div>
+
+    <div class="callout good">
+      <strong>Running today, not conceptually.</strong> Every push to this repo is gated by a real <code>.git/hooks/pre-push</code> hook that calls <code>sbom-scan</code>'s <code>full_scan</code> before code leaves the machine &mdash; it fired on the commit that shipped this document.
+    </div>
+  </section>
+
+  <section>
+    <div class="section-head"><span class="section-num">05</span><h2>Start it in three commands</h2></div>
+    <p class="section-sub">Free, open source, no licence to request. Anyone with Docker and Homebrew can have the same cluster running.</p>
+    <pre><code><span class="cmt"># toolchain: syft, grype, grant, k3d, kubectl, helm</span>
+make toolchain
+
+<span class="cmt"># three-node cluster, storage, ingress, RBAC</span>
+make cluster
+
+<span class="cmt"># registry, catalogue, inventory jobs, admission control, dashboard</span>
+cd phase3-inventory &amp;&amp; ./bootstrap.sh</code></pre>
+  </section>
+
+  <footer>
+    <span>anchore-lab &middot; open source only, no Enterprise licence used</span>
+    <a href="README.md">full build log &amp; findings →</a>
+  </footer>
+
+</div>
+</body>
+</html>

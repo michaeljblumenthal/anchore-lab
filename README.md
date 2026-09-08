@@ -16,8 +16,9 @@ against a refreshed vulnerability database on a schedule — no re-pull, no
 re-analysis, just a lookup.
 
 **A one-page visual summary — architecture diagram, node-by-node
-breakdown, networking, and the MCP tool surface — is published at
-[claude.ai/code/artifact/5720e67d-ca9c-4ada-8285-3b6dd2e86962](https://claude.ai/code/artifact/5720e67d-ca9c-4ada-8285-3b6dd2e86962).**
+breakdown, networking, and the MCP tool surface — is [SUMMARY.html](SUMMARY.html)
+in this repo** (also published at
+[claude.ai/code/artifact/5720e67d-ca9c-4ada-8285-3b6dd2e86962](https://claude.ai/code/artifact/5720e67d-ca9c-4ada-8285-3b6dd2e86962)).
 This README is the full write-up; that page is the fast version.
 
 Commercial platforms sell this. This lab builds a working version of it
