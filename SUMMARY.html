@@ -671,6 +671,16 @@
     <div class="callout warn">
       <strong>No auth in front of the in-cluster endpoint yet.</strong> Anyone reachable at <code>mcp.lab.localhost</code> can call every tool, catalogue reads included &mdash; acceptable for a single-operator local lab, not for anything beyond it. <code>MCPServer</code> already accepts a token verifier for this; wiring it in is scoped out of this pass deliberately, not overlooked.
     </div>
+
+    <p style="margin-top:20px;font-size:13.5px;color:var(--text-dim)">To connect a separate MCP client to the running <code>sbom-scan</code> endpoint (add to that client's MCP config):</p>
+    <pre><code>{
+  "mcpServers": {
+    "sbom-scan-cluster": {
+      "type": "http",
+      "url": "http://mcp.lab.localhost:8080/mcp"
+    }
+  }
+}</code></pre>
   </section>
 
   <section>

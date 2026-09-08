@@ -99,6 +99,49 @@ same unpinned-`mcp`-dependency bug documented for `grype-mcp` below
 `mcp>=2.0.0` explicitly, closing the same bug class for good rather than
 patching around it a second time.
 
+## Connecting to the in-cluster `sbom-scan` server
+
+Prerequisite: the cluster is up and `make mcp-server-deploy` has run (see
+the top-level README's quickstart). Then, from any MCP-capable client on
+the same machine as the cluster (the ingress hostname
+`mcp.lab.localhost` resolves to `127.0.0.1` — see
+`phase2-cluster/README.md` for why that needs no `/etc/hosts` entry on
+macOS), add this to the client's MCP config:
+
+```json
+{
+  "mcpServers": {
+    "sbom-scan-cluster": {
+      "type": "http",
+      "url": "http://mcp.lab.localhost:8080/mcp"
+    }
+  }
+}
+```
+
+(Claude Code specifically: this is the `.mcp.json` shape for a remote
+streamable-HTTP server — `type` also accepts `streamable-http` as an
+alias, since that's the MCP spec's own name for the transport; an entry
+with `url` but no `type` is read as stdio and will fail to connect.)
+
+This repo's own root `.mcp.json` deliberately keeps `sbom-scan` pointed at
+the **host-side stdio** binary instead — faster to start, and doesn't
+require the cluster to be running just to work on this repo day to day.
+The HTTP config above is what a *separate* client, on a different
+project, or someone else entirely, would use to reach this same running
+pipeline instead of installing anything locally. Verified working with
+the config above against the live cluster: a `tools/call` for
+`get_catalogue_summary` returned real data (see "In-cluster deployment"
+above for the exact response).
+
+`grype-mcp`'s in-cluster deployment has no equivalent HTTP config — it's
+only reachable via `connect-grype-mcp.sh` (`kubectl exec`), which means a
+client connecting to it needs `kubectl` access to this specific cluster,
+not just network reachability. That's an inherent limit of the
+exec-based approach, not an oversight: a genuinely remote MCP client
+(not running `kubectl` against this cluster) cannot reach `grype-mcp`
+in-cluster at all today, only `sbom-scan`'s HTTP endpoint.
+
 ## Findings
 
 1. **`anchore/grype-mcp` 0.4.0, as published, doesn't run against a fresh
