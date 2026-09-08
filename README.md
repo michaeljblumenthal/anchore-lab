@@ -270,7 +270,7 @@ cd ../phase6-self-scan && ./aggregate-report.sh   # the numbers above, reproduce
 
 Two commands after the toolchain is installed — `make cluster` then
 `./bootstrap.sh` — bring up the entire solution, MCP servers included.
-See [phase5-agentic/README.md](phase5-agentic/README.md#connecting-from-claude-desktop-and-chatgpt-local-apps-not-this-repos-own-client)
+See [phase5-agentic/README.md](phase5-agentic/README.md#connecting-from-claude-desktop-a-local-app-not-this-repos-own-client)
 for connecting an external client (Claude Desktop, or this repo's own
 Claude Code session) to the running MCP endpoint.
 

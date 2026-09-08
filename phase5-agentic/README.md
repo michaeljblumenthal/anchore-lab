@@ -143,13 +143,7 @@ exec-based approach, not an oversight: a genuinely remote MCP client
 (not running `kubectl` against this cluster) cannot reach `grype-mcp`
 in-cluster at all today, only `sbom-scan`'s HTTP endpoint.
 
-## Connecting from Claude Desktop and ChatGPT (local apps, not this repo's own client)
-
-Two different apps, two different constraints, verified rather than
-assumed — checked current behaviour for both before writing anything
-here.
-
-### Claude Desktop — works, via a config file, not the in-app "Add Connector" button
+## Connecting from Claude Desktop (a local app, not this repo's own client)
 
 Claude Desktop's Settings → Connectors "Add custom connector" UI does
 **not** work for this: that path sends the URL to Anthropic's cloud, and
@@ -191,29 +185,6 @@ Verified directly (not just documented from the package's own claims):
 ran `npx -y mcp-remote http://mcp.lab.localhost:8080/mcp --allow-http`
 by hand, piped a raw `initialize` request in, got a real response back
 from `sbom-mcp-server` through the bridge before writing this section.
-
-### ChatGPT — cannot reach this cluster today, and there is no local workaround
-
-Checked current ChatGPT connector behaviour before writing anything here
-rather than assuming parity with Claude Desktop: ChatGPT's MCP connectors
-(web or desktop app) require a **public HTTPS** endpoint unconditionally
-— there is no local-process bridge equivalent to `mcp-remote`, and plain
-HTTP is refused outright regardless of whether the host is `localhost`.
-This is a hard constraint on OpenAI's side, not a gap in this lab's setup.
-
-Reaching this cluster's MCP servers from ChatGPT would require exposing
-`mcp-server`'s Service publicly over HTTPS — a tunnel (ngrok/Cloudflare
-Tunnel) or a real public ingress on a cloud-hosted cluster. Deliberately
-not built or documented as a quick fix here: exposing a Kubernetes
-Service to the public internet is a real decision with real exposure
-(see the "no auth in front of the endpoint" gap noted above — that
-becomes materially worse the moment the endpoint is public, not just
-local-network-and-`kubectl`-reachable), not something to wire up as a
-demo convenience. If this cluster is deployed to a real cloud provider
-with a proper public ingress and authentication in front of it (see the
-top-level README's "where a self-assembled stack stops being worth it"),
-ChatGPT's connector setup at that point is the standard one: Settings →
-Connectors → Add, paste the public HTTPS URL ending in `/mcp`.
 
 ## Findings
 
