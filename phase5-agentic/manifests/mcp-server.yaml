@@ -32,6 +32,13 @@ spec:
       containers:
         - name: mcp-server
           image: zot.lab.localhost:8080/lab/mcp-server:0.1.0
+          # Always, not the k8s default IfNotPresent: this tag gets rebuilt
+          # in place during active development (same tag, new digest each
+          # time -- see phase3-inventory/README.md finding #9 for the same
+          # gotcha hit earlier in this build), and IfNotPresent would keep
+          # serving a stale cached image forever once one copy has been
+          # pulled onto a node.
+          imagePullPolicy: Always
           ports:
             - containerPort: 8000
           env:

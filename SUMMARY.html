@@ -697,21 +697,21 @@ make cluster
 <span class="cmt"># admission control, dashboard, and BOTH MCP servers</span>
 make bootstrap</code></pre>
 
-    <p style="margin-top:24px;font-size:14.5px;font-weight:600;color:var(--text)">Connect it to Claude Desktop, then scan a repo on your machine</p>
-    <p style="font-size:13.5px;color:var(--text-dim);max-width:66ch">Syft/Grype/Grant don't need the cluster &mdash; they're just CLI tools. The cluster is for the <em>pipeline</em> (registry, database, scheduled re-scans, dashboard). To scan something on your own machine, point Claude Desktop at the <strong style="color:var(--text)">host-side</strong> MCP server, not the in-cluster one &mdash; a pod can't see your laptop's filesystem, this local process can.</p>
+    <p style="margin-top:24px;font-size:14.5px;font-weight:600;color:var(--text)">Connect it to Claude Desktop, then scan a repo &mdash; entirely in-cluster</p>
+    <p style="font-size:13.5px;color:var(--text-dim);max-width:66ch">Every tool and both MCP servers already run as pods after <code>make bootstrap</code> &mdash; nothing runs on your laptop for this. Give it a git URL and the server clones the repo <em>inside the cluster</em>, scans the clone, and deletes it, the same way a CI runner would.</p>
     <pre><code>{
   "mcpServers": {
-    "anchore-lab": {
-      "command": "/absolute/path/to/anchore-lab/phase5-agentic/sbom-mcp-server/.venv/bin/sbom-mcp-server",
-      "args": []
+    "anchore-lab-cluster": {
+      "type": "http",
+      "url": "http://mcp.lab.localhost:8080/mcp"
     }
   }
 }</code></pre>
-    <p style="font-size:13.5px;color:var(--text-dim)">Add that to <code>claude_desktop_config.json</code> (restart the app), then in a new chat:</p>
+    <p style="font-size:13.5px;color:var(--text-dim)">Add that to <code>claude_desktop_config.json</code> (restart the app &mdash; no local install needed), then in a new chat:</p>
     <div class="callout good" style="font-style:italic">
-      "Use the full_scan tool to scan <code>dir:/Users/yourname/code/some-project</code> for vulnerabilities and licence issues, and summarise the Critical and High findings."
+      "Use the scan_git_repo tool to scan <code>https://github.com/anchore/grype-mcp</code> for vulnerabilities and licence issues, and summarise the Critical and High findings."
     </div>
-    <p style="font-size:13.5px;color:var(--text-dim);margin-top:10px">Claude runs Syft to catalogue the repo, Grype to match against the vulnerability database, and Grant to check licences &mdash; the same pipeline this lab's own pre-push hook runs on every commit &mdash; and reports back in the chat. Verified: a real <code>full_scan</code> call against this server's own directory returned 79 packages and a full Grype/Grant report before this was written down.</p>
+    <p style="font-size:13.5px;color:var(--text-dim);margin-top:10px">The in-cluster server clones the repo, runs Syft to catalogue its dependencies, Grype to match against the vulnerability database, and Grant to check licences, then reports back in the chat. Verified against this exact example before writing it down: a real call completed in 6.2 seconds end to end, correctly returning both vulnerability and licence findings. (Scanning uncommitted local work instead needs the host-side install &mdash; see <a href="phase5-agentic/README.md#connecting-from-claude-desktop-a-local-app-not-this-repos-own-client">phase5-agentic/README.md</a>.)</p>
   </section>
 
   <footer>

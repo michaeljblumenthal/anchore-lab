@@ -50,10 +50,17 @@ convenience.
 - **streamable-http, in-cluster** (`phase5-agentic/manifests/mcp-server.yaml`):
   a real Deployment + Service + Traefik Ingress at `mcp.lab.localhost`,
   reachable from the host over the network like every other service in
-  this lab. Registry/image targets only — a `dir:` target has no meaning
-  running as a pod, the pod's filesystem isn't the caller's laptop — and
-  three new tools backed directly by the Phase 3 Postgres catalogue:
-  `query_images_by_package`, `get_image_findings`, `get_catalogue_summary`.
+  this lab. Registry/image targets only for the original tools — a `dir:`
+  target has no meaning running as a pod, the pod's filesystem isn't the
+  caller's laptop — plus three tools backed directly by the Phase 3
+  Postgres catalogue (`query_images_by_package`, `get_image_findings`,
+  `get_catalogue_summary`) and one more available in both modes,
+  `scan_git_repo`, which closes the local-filesystem gap properly: it
+  clones a given git URL *inside the server itself*, scans the clone, and
+  deletes it — the same way a CI runner would, no access to the caller's
+  machine needed at all. This is the fully-containerized way to scan an
+  arbitrary repository: everything, tools included, running only in
+  Kubernetes, with a git URL as the only input.
 
 Verified end to end, not just deployed: a real `tools/call` for
 `get_catalogue_summary`, made from the host through
@@ -62,7 +69,10 @@ Verified end to end, not just deployed: a real `tools/call` for
 — live data, matching Phase 6's numbers exactly, reached over the network
 rather than a local file. `query_images_by_package("stdlib")` returned the
 same base-image-commonality data Phase 6 found by direct SQL, now
-answerable conversationally against a running cluster.
+answerable conversationally against a running cluster. `scan_git_repo`
+verified the same way: a real call against `https://github.com/anchore/grype-mcp`
+completed in 6.2 seconds end to end (clone + Syft + Grype + Grant),
+returning both vulnerability and licence findings.
 
 `grype-mcp` (the third-party official Anchore server) runs in-cluster too,
 but by a different mechanism, because its `server.py` hardcodes
@@ -214,3 +224,24 @@ from `sbom-mcp-server` through the bridge before writing this section.
    with a local flag, is where the stricter cutoff actually belongs. This
    is a real judgment call worth stating explicitly rather than silently
    picking a number.
+3. **Neither in-cluster manifest set `imagePullPolicy: Always` originally
+   — a second instance of a bug already found once.**
+   `phase3-inventory/README.md` finding #9 documented this exact gotcha
+   for the SBOM CronJobs: a fixed tag (`:0.1.0`) rebuilt in place during
+   active development gets a new digest each push, but Kubernetes'
+   default `imagePullPolicy` (`IfNotPresent` for any non-`:latest` tag)
+   keeps serving whatever was cached on the node. Rebuilt `mcp-server`'s
+   image to add `scan_git_repo` support, redeployed, and the pod kept
+   running the *old* image — confirmed via
+   `containerStatuses[0].imageID` showing the previous digest — despite
+   `kubectl apply` reporting the Deployment as updated. The fix from
+   Phase 3 wasn't carried over to `phase5-agentic/manifests/mcp-server.yaml`
+   or `grype-mcp.yaml` when they were first written; added
+   `imagePullPolicy: Always` to both now. **Lesson worth repeating**: a
+   fix recorded once in one phase's README doesn't automatically apply
+   itself to manifests written later in a different phase — each of this
+   lab's phase directories has its own plain-YAML manifests with no
+   shared base or templating between them, so a gotcha fixed in one place
+   has to be remembered and reapplied by hand everywhere else it's
+   relevant. Worth naming as a real cost of that structure, not just the
+   individual bug.

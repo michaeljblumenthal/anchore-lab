@@ -19,6 +19,14 @@ Two deployment modes, one codebase:
   configure the listener (defaults 0.0.0.0:8000).
 
     MCP_TRANSPORT=streamable-http MCP_MODE=cluster sbom-mcp-server
+
+`scan_git_repo` is available in both modes and is the way to scan an
+arbitrary repository fully in-cluster, with no dependency on the caller's
+local filesystem: it clones the repo itself (like a CI runner would),
+scans the clone, and deletes it afterwards. This is the containerized
+alternative to a `dir:` target for anyone who wants "the whole solution,
+tools included, running only in Kubernetes" rather than relying on a
+host-side install.
 """
 
 from __future__ import annotations
@@ -89,6 +97,28 @@ def full_scan(target: str, fail_on: str | None = None) -> str:
     """
     workdir = tempfile.mkdtemp(prefix="sbom-mcp-")
     result: dict[str, Any] = tools.full_scan(target, workdir, fail_on=fail_on)
+    return json.dumps(result)
+
+
+@mcp.tool()
+def scan_git_repo(git_url: str, ref: str | None = None, fail_on: str | None = None) -> str:
+    """Clone a public git repository and run the full Syft -> Grype -> Grant
+    pipeline against it -- entirely inside this server, no access to the
+    caller's local filesystem needed. This is what lets a repo be scanned
+    fully in-cluster: the server clones the repo itself (like a CI runner
+    would), scans the clone, and deletes it afterwards.
+
+    Args:
+        git_url: a git URL Syft's environment can clone without extra
+            credentials -- a public HTTPS URL (https://github.com/org/repo)
+            or an SSH URL if this server's environment has a deploy key
+            configured (none is configured by default in this lab).
+        ref: branch, tag, or commit to check out. Defaults to the repo's
+            default branch.
+        fail_on: optional severity threshold passed to Grype.
+    """
+    workdir = tempfile.mkdtemp(prefix="sbom-mcp-git-")
+    result: dict[str, Any] = tools.scan_git_repo(git_url, workdir, ref=ref, fail_on=fail_on)
     return json.dumps(result)
 
 

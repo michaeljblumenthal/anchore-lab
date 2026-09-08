@@ -13,6 +13,8 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
+from sbom_mcp_server.git_clone import cloned_repo
+
 
 class ToolNotFoundError(RuntimeError):
     pass
@@ -116,3 +118,24 @@ def full_scan(target: str, workdir: str, fail_on: str | None = None) -> dict[str
         "licenses": licenses,
         "license_error": license_error,
     }
+
+
+def scan_git_repo(
+    git_url: str, workdir: str, ref: str | None = None, fail_on: str | None = None
+) -> dict[str, Any]:
+    """Clone a public git repo and run the full Syft -> Grype -> Grant pipeline
+    against it.
+
+    This is the fully-containerized "scan a repo" path: unlike full_scan's
+    `dir:` targets, which only work when the caller and the server share a
+    filesystem (the host-side stdio server), this clones the repo itself --
+    so it works identically whether the server is running on a laptop or in
+    a Kubernetes pod with no access to anyone's local filesystem. The
+    clone is temporary and deleted after the scan; nothing about the
+    repo's contents persists beyond the SBOM the scan produces.
+    """
+    with cloned_repo(git_url, ref=ref) as repo_path:
+        result = full_scan(f"dir:{repo_path}", workdir, fail_on=fail_on)
+    result["git_url"] = git_url
+    result["ref"] = ref
+    return result
