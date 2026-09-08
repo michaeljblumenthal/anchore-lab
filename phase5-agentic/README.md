@@ -25,11 +25,65 @@ Status legend: `[x]` done and verified, `[ ]` not started, `[~]` in progress.
   are reported but don't block (see rationale below). Verified running
   locally: 83 packages, 0 findings against `sbom-mcp-server`'s current
   state.
-- [~] Stretch: expose the Phase 3 catalogue over MCP so "which running
+- [x] Stretch: expose the Phase 3 catalogue over MCP so "which running
   images contain this package" can be asked conversationally against real
-  cluster data. Not started — natural follow-on to `sbom-mcp-server`
-  (add a `query_catalogue` tool backed by the same Postgres the runtime
-  pipeline already writes to) rather than a new server.
+  cluster data. Done as an in-cluster deployment of `sbom-mcp-server`
+  itself, not a new server — see "In-cluster deployment" below.
+
+## In-cluster deployment
+
+Originally, both MCP servers ran only as host-side stdio subprocesses,
+launched by Claude Code from `.mcp.json`. That's a real limit on the "this
+whole solution deploys to any Kubernetes" claim the lab otherwise makes: an
+MCP server that only exists as a venv next to wherever `kubectl` happens to
+point isn't actually part of the deployable system, it's a client-side
+convenience.
+
+`sbom-mcp-server` now runs both ways from one codebase:
+
+- **stdio** (unchanged): host-side, launched locally, full tool surface
+  including local-filesystem targets (`dir:./path`) — meaningful here
+  because the caller's own machine *is* the filesystem being scanned.
+- **streamable-http, in-cluster** (`phase5-agentic/manifests/mcp-server.yaml`):
+  a real Deployment + Service + Traefik Ingress at `mcp.lab.localhost`,
+  reachable from the host over the network like every other service in
+  this lab. Registry/image targets only — a `dir:` target has no meaning
+  running as a pod, the pod's filesystem isn't the caller's laptop — and
+  three new tools backed directly by the Phase 3 Postgres catalogue:
+  `query_images_by_package`, `get_image_findings`, `get_catalogue_summary`.
+
+Verified end to end, not just deployed: a real `tools/call` for
+`get_catalogue_summary`, made from the host through
+`http://mcp.lab.localhost:8080/mcp`, returned
+`{"images_tracked": 19, "sboms_stored": 19, "total_packages": 5099, "total_findings": 2406}`
+— live data, matching Phase 6's numbers exactly, reached over the network
+rather than a local file. `query_images_by_package("stdlib")` returned the
+same base-image-commonality data Phase 6 found by direct SQL, now
+answerable conversationally against a running cluster.
+
+`grype-mcp` (the third-party official Anchore server) was not moved
+in-cluster — it's stdio-only by design and not this repo's code to modify.
+It stays host-side, which is the correct scope: it's a query tool against
+the Grype vulnerability database, not a cluster-state service.
+
+**Known gap, stated plainly rather than half-solved**: the in-cluster
+endpoint has no authentication in front of it. Anyone who can reach
+`mcp.lab.localhost` can call every tool, catalogue reads included. That's
+an acceptable posture for a single-operator local lab and not for anything
+beyond it. `MCPServer`'s constructor already accepts a `token_verifier`
+for exactly this (see `sbom_mcp_server/server.py`), so the extension point
+exists — building real auth (OAuth token verification, or an
+authenticating proxy in front of the Ingress) is scoped out of this pass
+deliberately, not overlooked. A real multi-tenant or internet-facing
+deployment needs it before going any further than this lab's own cluster.
+
+Also fixed along the way: `sbom-mcp-server`'s own `pyproject.toml` had the
+same unpinned-`mcp`-dependency bug documented for `grype-mcp` below
+(`mcp>=1.2.0`, no ceiling) — a fresh install had silently drifted to `mcp`
+2.2.0, which broke the `FastMCP` import the same way. Migrated properly to
+`mcp` 2.x's `MCPServer` API (not re-pinned backward) and pinned
+`mcp>=2.0.0` explicitly, closing the same bug class for good rather than
+patching around it a second time.
 
 ## Findings
 

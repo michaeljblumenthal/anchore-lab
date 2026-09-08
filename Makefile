@@ -1,14 +1,15 @@
-.PHONY: toolchain mcp-server mcp-server-scan image-scan repo-scan cluster clean-cluster help
+.PHONY: toolchain mcp-server mcp-server-scan image-scan repo-scan cluster clean-cluster mcp-server-deploy help
 
 help:
 	@echo "Targets:"
 	@echo "  toolchain         install/verify syft, grype, grant, docker(colima), kubectl, helm, k3d, k9s"
-	@echo "  mcp-server        create venv and install sbom-mcp-server"
+	@echo "  mcp-server        create venv and install sbom-mcp-server (host-side, stdio)"
 	@echo "  mcp-server-scan   run a full syft->grype->grant scan against a TARGET (default: this repo)"
+	@echo "  mcp-server-deploy build+push+deploy sbom-mcp-server in-cluster (streamable-http, mcp.lab.localhost)"
 	@echo "  image-scan        SBOM (3 formats) + grype + VEX for an IMAGE (default: python:3.12-slim)"
 	@echo "  repo-scan         shallow-clone a REPO and SBOM it as a source-repo target"
-	@echo "  cluster           bring up the Phase 2 k3d cluster (not yet implemented)"
-	@echo "  clean-cluster     tear down the Phase 2 k3d cluster (not yet implemented)"
+	@echo "  cluster           bring up the Phase 2 k3d cluster"
+	@echo "  clean-cluster     tear down the Phase 2 k3d cluster"
 
 toolchain:
 	./phase1-toolchain/install.sh
@@ -44,3 +45,9 @@ cluster:
 
 clean-cluster:
 	k3d cluster delete anchore-lab
+
+mcp-server-deploy:
+	cd phase3-inventory && ./push-to-registry.sh ../phase5-agentic/sbom-mcp-server/Dockerfile ../phase5-agentic/sbom-mcp-server lab/mcp-server:0.1.0
+	kubectl apply -f phase5-agentic/manifests/mcp-server.yaml
+	kubectl rollout status deployment/mcp-server -n anchore-lab-system --timeout=90s
+	@echo "MCP server reachable at http://mcp.lab.localhost:8080/mcp"

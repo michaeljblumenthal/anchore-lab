@@ -1,0 +1,94 @@
+# In-cluster deployment of sbom-mcp-server, streamable-http transport,
+# cluster mode (catalogue query tools enabled). This is what makes the
+# whole solution actually deployable to any Kubernetes -- local k3d today,
+# IBM Cloud/Azure/GCP/AWS unchanged tomorrow -- rather than depending on a
+# host-side Python venv sitting next to wherever kubectl happens to point.
+#
+# Known gap, stated plainly: no authentication in front of this endpoint.
+# Anyone who can reach mcp.lab.localhost can call every tool, including the
+# catalogue-read tools. Fine for a single-operator local lab; a real
+# multi-tenant or internet-exposed deployment needs a real auth layer
+# (OAuth token verification -- MCPServer's constructor already accepts a
+# token_verifier, see sbom_mcp_server/server.py -- or an authenticating
+# proxy in front of the Ingress) before this goes anywhere further than a
+# single developer's own cluster. Scoped out of this pass deliberately
+# rather than half-built.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mcp-server
+  namespace: anchore-lab-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mcp-server
+  template:
+    metadata:
+      labels:
+        app: mcp-server
+    spec:
+      serviceAccountName: sbom-jobs
+      containers:
+        - name: mcp-server
+          image: zot.lab.localhost:8080/lab/mcp-server:0.1.0
+          ports:
+            - containerPort: 8000
+          env:
+            - name: CATALOGUE_DSN
+              value: "postgresql://catalogue:cataloguepassword123@catalogue-db-postgresql:5432/catalogue"
+            - name: SYFT_REGISTRY_INSECURE_USE_HTTP
+              value: "true"
+            - name: SYFT_REGISTRY_INSECURE_SKIP_TLS_VERIFY
+              value: "true"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 128Mi
+            limits:
+              cpu: 500m
+              memory: 512Mi
+          # TCP, not httpGet: a bare GET /mcp returns 400 (streamable-http
+          # expects POST with session headers for the real handshake, see
+          # phase5-agentic/README.md), which httpGet's default 200-399
+          # success range would treat as failing forever. A TCP check on
+          # the listening port is honest about what's actually being
+          # verified -- the process is up and accepting connections -- and
+          # is now the only accurate liveness signal without a more real
+          # deep-health-check tool having a dedicated MCP-aware endpoint.
+          readinessProbe:
+            tcpSocket:
+              port: 8000
+            initialDelaySeconds: 3
+            periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mcp-server
+  namespace: anchore-lab-system
+spec:
+  selector:
+    app: mcp-server
+  ports:
+    - port: 8000
+      targetPort: 8000
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: mcp-server
+  namespace: anchore-lab-system
+spec:
+  ingressClassName: traefik
+  rules:
+    - host: mcp.lab.localhost
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: mcp-server
+                port:
+                  number: 8000

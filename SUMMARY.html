@@ -512,8 +512,8 @@
           <text x="351" y="262" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">Postgres catalogue</text>
           <text x="351" y="278" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">kyverno-admission</text>
           <text x="351" y="294" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">kyverno-background</text>
-          <text x="351" y="310" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">local-path-provisioner</text>
-          <text x="351" y="326" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">whoami (2/2)</text>
+          <text x="351" y="310" font-family="JetBrains Mono, monospace" font-size="10" fill="#5ec8d8">mcp-server (:8000)</text>
+          <text x="351" y="326" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">local-path-provisioner</text>
         </g>
 
         <g>
@@ -570,7 +570,7 @@
           <div class="node-fact"><dt>Runtime</dt><dd>containerd 2.2.3</dd></div>
           <div class="node-fact"><dt>K3s</dt><dd>v1.35.5+k3s1</dd></div>
         </dl>
-        <div class="node-pods"><span class="pod-count">5</span> pods &middot; Postgres, kyverno-admission, kyverno-background, local-path-provisioner, whoami</div>
+        <div class="node-pods"><span class="pod-count">6</span> pods &middot; Postgres, kyverno-admission, kyverno-background, <strong style="color:var(--accent)">mcp-server</strong>, local-path-provisioner, whoami</div>
       </div>
       <div class="node-card">
         <div class="node-role">Worker</div>
@@ -630,20 +630,23 @@
 
   <section>
     <div class="section-head"><span class="section-num">04</span><h2>The MCP servers</h2></div>
-    <p class="section-sub">Two Model Context Protocol servers, wired into Claude Code today via one <code>.mcp.json</code>. Anyone can point an MCP-capable assistant at a codebase and start asking it to scan, right now &mdash; no cluster required for either.</p>
+    <p class="section-sub">Two Model Context Protocol servers. <code>sbom-scan</code> runs both host-side (stdio, via <code>.mcp.json</code>) and <strong>in-cluster</strong> (streamable-HTTP, deployed like everything else in this cluster) &mdash; the same code, two transports, so the agentic layer is part of the deployable system rather than a local convenience layered on top of it.</p>
 
     <div class="server-block">
       <div class="server-head">
         <span class="server-name">sbom-scan</span>
-        <span class="server-count">5 tools · this repo</span>
+        <span class="server-count">5 + 3 tools · this repo</span>
       </div>
-      <p class="server-desc">Orchestrates Syft → Grype → Grant as one pipeline against any path, image, or archive &mdash; generates the SBOM once and reuses it for both the vulnerability and licence passes.</p>
+      <p class="server-desc">Orchestrates Syft → Grype → Grant as one pipeline against any path, image, or archive &mdash; generates the SBOM once and reuses it for both the vulnerability and licence passes. In cluster mode (<code>mcp.lab.localhost</code>) it additionally exposes three tools reading the Phase 3 catalogue directly, live, over the network.</p>
       <div class="tool-list">
         <div class="tool-row"><span class="tool-name">generate_sbom</span><span class="tool-desc">Syft SBOM in syft-json, spdx-json, or cyclonedx-json</span></div>
         <div class="tool-row"><span class="tool-name">scan_vulnerabilities</span><span class="tool-desc">Grype against a stored SBOM file</span></div>
         <div class="tool-row"><span class="tool-name">scan_target</span><span class="tool-desc">Grype directly against an image or directory</span></div>
         <div class="tool-row"><span class="tool-name">check_licenses</span><span class="tool-desc">Grant licence compliance against an SBOM</span></div>
         <div class="tool-row"><span class="tool-name">full_scan</span><span class="tool-desc">The whole pipeline, one call, one shared SBOM artefact</span></div>
+        <div class="tool-row"><span class="tool-name">query_images_by_package <span class="mono" style="color:var(--accent);font-size:0.85em">in-cluster</span></span><span class="tool-desc">"Which running images contain this package" &mdash; live catalogue query</span></div>
+        <div class="tool-row"><span class="tool-name">get_image_findings <span class="mono" style="color:var(--accent);font-size:0.85em">in-cluster</span></span><span class="tool-desc">All current findings for one tracked image</span></div>
+        <div class="tool-row"><span class="tool-name">get_catalogue_summary <span class="mono" style="color:var(--accent);font-size:0.85em">in-cluster</span></span><span class="tool-desc">Aggregate counts across the whole catalogue, right now</span></div>
       </div>
     </div>
 
@@ -663,7 +666,10 @@
     </div>
 
     <div class="callout good">
-      <strong>Running today, not conceptually.</strong> Every push to this repo is gated by a real <code>.git/hooks/pre-push</code> hook that calls <code>sbom-scan</code>'s <code>full_scan</code> before code leaves the machine &mdash; it fired on the commit that shipped this document.
+      <strong>Running today, not conceptually.</strong> Every push to this repo is gated by a real <code>.git/hooks/pre-push</code> hook that calls <code>sbom-scan</code>'s <code>full_scan</code> before code leaves the machine. And the in-cluster endpoint answers real questions right now &mdash; a live <code>tools/call</code> to <code>get_catalogue_summary</code> through <code>http://mcp.lab.localhost:8080/mcp</code> returned <code>{"images_tracked": 19, "sboms_stored": 19, "total_packages": 5099, "total_findings": 2406}</code>, matching the numbers above exactly.
+    </div>
+    <div class="callout warn">
+      <strong>No auth in front of the in-cluster endpoint yet.</strong> Anyone reachable at <code>mcp.lab.localhost</code> can call every tool, catalogue reads included &mdash; acceptable for a single-operator local lab, not for anything beyond it. <code>MCPServer</code> already accepts a token verifier for this; wiring it in is scoped out of this pass deliberately, not overlooked.
     </div>
   </section>
 
@@ -677,7 +683,10 @@ make toolchain
 make cluster
 
 <span class="cmt"># registry, catalogue, inventory jobs, admission control, dashboard</span>
-cd phase3-inventory &amp;&amp; ./bootstrap.sh</code></pre>
+cd phase3-inventory &amp;&amp; ./bootstrap.sh
+
+<span class="cmt"># the MCP server, in-cluster, reachable at mcp.lab.localhost</span>
+make mcp-server-deploy</code></pre>
   </section>
 
   <footer>
