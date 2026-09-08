@@ -3,6 +3,10 @@
     "sbom-scan": {
       "command": "phase5-agentic/sbom-mcp-server/.venv/bin/sbom-mcp-server",
       "args": []
+    },
+    "grype-mcp": {
+      "command": "phase5-agentic/grype-mcp-install/.venv/bin/grype-mcp",
+      "args": []
     }
   }
 }

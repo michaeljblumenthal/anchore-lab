@@ -20,9 +20,8 @@ written up after the fact.
   See [phase3-inventory/README.md](phase3-inventory/README.md).
 - **Phase 4 — CI integration**: complete. See
   [phase4-ci/README.md](phase4-ci/README.md).
-- **Phase 5 — Agentic interface**: MCP server built (see
-  [phase5-agentic/sbom-mcp-server/](phase5-agentic/sbom-mcp-server/)),
-  pre-push gate pending.
+- **Phase 5 — Agentic interface**: complete. See
+  [phase5-agentic/README.md](phase5-agentic/README.md).
 - **Phase 6 — Turn the system on itself**: not started.
 
 ## Quickstart
