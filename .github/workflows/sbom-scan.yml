@@ -1,0 +1,80 @@
+name: SBOM and vulnerability scan
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  sbom-and-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+
+      # Generates an SBOM for the sbom-mcp-server project (real dependency
+      # tree: mcp SDK, cryptography, PyJWT, starlette/uvicorn — see
+      # phase1-toolchain/README.md for how this project doubled as the
+      # Phase 1 "messy real app" scan target). Published as a build
+      # artifact and, on a real release, would also attach to it — this is
+      # the audit trail the plan calls a CRA reporting timeline requires:
+      # a per-commit SBOM record, not a point-in-time scan nobody kept.
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: phase5-agentic/sbom-mcp-server
+          format: spdx-json
+          artifact-name: sbom-mcp-server.spdx.json
+          output-file: sbom-mcp-server.spdx.json
+
+      # Fails the build on Critical/High findings by default (severity-cutoff:
+      # high), which is the policy this workflow enforces. See
+      # phase4-ci/README.md for the failing run this policy deliberately
+      # produced and how it was resolved, both kept as real evidence rather
+      # than only showing the passing state.
+      - name: Scan SBOM with Grype
+        uses: anchore/scan-action@v6
+        id: scan
+        with:
+          sbom: sbom-mcp-server.spdx.json
+          fail-build: true
+          severity-cutoff: high
+          output-format: sarif
+
+      - name: Upload Grype scan SARIF
+        uses: github/codeql-action/upload-sarif@v3
+        if: always()
+        with:
+          sarif_file: ${{ steps.scan.outputs.sarif }}
+
+  # See phase4-ci/vulnerable-demo/README.md: a deliberate fixture with a
+  # known-vulnerable pinned dependency, kept separate from the real
+  # sbom-mcp-server project (whose dependencies are clean). This job exists
+  # so the plan's "fail the build, then fix it, both documented" requirement
+  # has a genuine, reproducible failure to point to rather than a
+  # hypothetical one.
+  vulnerable-demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Generate SBOM
+        uses: anchore/sbom-action@v0
+        with:
+          path: phase4-ci/vulnerable-demo
+          format: spdx-json
+          artifact-name: vulnerable-demo.spdx.json
+          output-file: vulnerable-demo.spdx.json
+
+      - name: Scan SBOM with Grype (expected to fail while pinned to pyjwt==1.7.1)
+        uses: anchore/scan-action@v6
+        with:
+          sbom: vulnerable-demo.spdx.json
+          fail-build: true
+          severity-cutoff: high
+          output-format: table
