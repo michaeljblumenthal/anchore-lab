@@ -681,23 +681,21 @@
     }
   }
 }</code></pre>
+    <p style="margin-top:14px;font-size:13.5px;color:var(--text-dim)"><strong style="color:var(--text)">Claude Desktop</strong> reaches this the same way via a config-file entry + the <code>mcp-remote</code> stdio&harr;HTTP bridge (verified working, not the in-app "Add Connector" flow, which routes through Anthropic's cloud and can't see localhost). <strong style="color:var(--text)">ChatGPT</strong> cannot reach it at all without a public HTTPS endpoint &mdash; a hard constraint on its side, no local workaround exists. Full steps: <a href="phase5-agentic/README.md#connecting-from-claude-desktop-and-chatgpt-local-apps-not-this-repos-own-client">phase5-agentic/README.md</a>.</p>
   </section>
 
   <section>
     <div class="section-head"><span class="section-num">05</span><h2>Start it in three commands</h2></div>
-    <p class="section-sub">Free, open source, no licence to request. Anyone with Docker and Homebrew can have the same cluster running.</p>
+    <p class="section-sub">Free, open source, no licence to request. Anyone with Docker and Homebrew can have the same cluster running &mdash; MCP servers included, no separate deploy step.</p>
     <pre><code><span class="cmt"># toolchain: syft, grype, grant, k3d, kubectl, helm</span>
 make toolchain
 
 <span class="cmt"># three-node cluster, storage, ingress, RBAC</span>
 make cluster
 
-<span class="cmt"># registry, catalogue, inventory jobs, admission control, dashboard</span>
-cd phase3-inventory &amp;&amp; ./bootstrap.sh
-
-<span class="cmt"># both MCP servers, in-cluster</span>
-make mcp-server-deploy     <span class="cmt"># sbom-scan, HTTP, mcp.lab.localhost</span>
-make grype-mcp-deploy      <span class="cmt"># grype-mcp, stdio via kubectl exec</span></code></pre>
+<span class="cmt"># everything else: registry, catalogue, inventory jobs,</span>
+<span class="cmt"># admission control, dashboard, and BOTH MCP servers</span>
+cd phase3-inventory &amp;&amp; ./bootstrap.sh</code></pre>
   </section>
 
   <footer>

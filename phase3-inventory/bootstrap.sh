@@ -72,12 +72,20 @@ helm upgrade --install kyverno kyverno/kyverno \
   --wait --timeout 5m
 kubectl apply -f manifests/kyverno-policies.yaml
 
-log "8/8 Grafana (visibility)"
+log "8/9 Grafana (visibility)"
 helm upgrade --install grafana grafana/grafana \
   --namespace "$NAMESPACE" \
   --values helm-values/grafana.yaml \
   --wait --timeout 5m
 
-log "Phase 3 baseline ready."
+log "9/9 MCP servers (in-cluster — see phase5-agentic/README.md)"
+./push-to-registry.sh ../phase5-agentic/sbom-mcp-server/Dockerfile ../phase5-agentic/sbom-mcp-server lab/mcp-server:0.1.0
+kubectl apply -f ../phase5-agentic/manifests/mcp-server.yaml
+kubectl rollout status deployment/mcp-server -n "$NAMESPACE" --timeout=90s
+./push-to-registry.sh ../phase5-agentic/grype-mcp-container/Dockerfile ../phase5-agentic/grype-mcp-container lab/grype-mcp:0.1.0
+kubectl apply -f ../phase5-agentic/manifests/grype-mcp.yaml
+kubectl rollout status deployment/grype-mcp -n "$NAMESPACE" --timeout=90s
+
+log "Everything ready. sbom-scan: http://mcp.lab.localhost:8080/mcp | grype-mcp: kubectl exec (see phase5-agentic/connect-grype-mcp.sh)"
 kubectl get pods -n "$NAMESPACE"
 kubectl get pods -n kyverno

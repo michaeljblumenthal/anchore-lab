@@ -263,11 +263,16 @@ findings — this document is the synthesis, those are the primary sources.
 ```sh
 make toolchain       # syft, grype, grant, docker (via colima), kubectl, helm, k3d, k9s
 make cluster          # bring up the k3d cluster
-cd phase3-inventory && ./bootstrap.sh   # registry, storage, catalogue, jobs, admission control, dashboard
-cd .. && make mcp-server-deploy   # sbom-scan, in-cluster, reachable at mcp.lab.localhost
-make grype-mcp-deploy              # grype-mcp, in-cluster, reachable via kubectl exec
-cd phase6-self-scan && ./aggregate-report.sh   # the numbers above, reproduced
+cd phase3-inventory && ./bootstrap.sh   # everything: registry, storage, catalogue, jobs,
+                                          # admission control, dashboard, and both MCP servers
+cd ../phase6-self-scan && ./aggregate-report.sh   # the numbers above, reproduced
 ```
+
+Two commands after the toolchain is installed — `make cluster` then
+`./bootstrap.sh` — bring up the entire solution, MCP servers included.
+See [phase5-agentic/README.md](phase5-agentic/README.md#connecting-from-claude-desktop-and-chatgpt-local-apps-not-this-repos-own-client)
+for connecting an external client (Claude Desktop, or this repo's own
+Claude Code session) to the running MCP endpoint.
 
 `make help` lists every available target.
 
