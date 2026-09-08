@@ -140,4 +140,7 @@ The repository holds manifests, Helm values, CI workflows, MCP configuration and
 
 ## Status
 
-In progress. Build log maintained alongside this plan.
+All seven phases complete. See the top-level `README.md` for the
+write-up, `docs/build-log/` for the day-by-day account, and each
+`phaseN-*/README.md` for the primary-source detail and numbered findings
+behind it.
