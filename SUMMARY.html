@@ -525,8 +525,8 @@
           <line x1="626" y1="244" x2="836" y2="244" stroke="#232a3a"/>
           <text x="626" y="262" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">Zot registry (:5000)</text>
           <text x="626" y="278" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">Grafana</text>
-          <text x="626" y="294" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">runtime-inventory ⏱</text>
-          <text x="626" y="310" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">sbom-generate ⏱</text>
+          <text x="626" y="294" font-family="JetBrains Mono, monospace" font-size="10" fill="#5ec8d8">grype-mcp (exec)</text>
+          <text x="626" y="310" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">runtime-inv / sbom-gen ⏱</text>
           <text x="626" y="326" font-family="JetBrains Mono, monospace" font-size="10" fill="#dbe1ee">sbom-rescan ⏱</text>
         </g>
 
@@ -581,7 +581,7 @@
           <div class="node-fact"><dt>Runtime</dt><dd>containerd 2.2.3</dd></div>
           <div class="node-fact"><dt>K3s</dt><dd>v1.35.5+k3s1</dd></div>
         </dl>
-        <div class="node-pods"><span class="pod-count">6</span> pods &middot; Zot registry, Grafana, metrics-server, and the three scheduled inventory jobs</div>
+        <div class="node-pods"><span class="pod-count">7</span> pods &middot; Zot registry, Grafana, <strong style="color:var(--accent)">grype-mcp</strong>, and the three scheduled inventory jobs</div>
       </div>
     </div>
   </section>
@@ -630,7 +630,7 @@
 
   <section>
     <div class="section-head"><span class="section-num">04</span><h2>The MCP servers</h2></div>
-    <p class="section-sub">Two Model Context Protocol servers. <code>sbom-scan</code> runs both host-side (stdio, via <code>.mcp.json</code>) and <strong>in-cluster</strong> (streamable-HTTP, deployed like everything else in this cluster) &mdash; the same code, two transports, so the agentic layer is part of the deployable system rather than a local convenience layered on top of it.</p>
+    <p class="section-sub">Two Model Context Protocol servers, both running in-cluster today &mdash; <code>sbom-scan</code> over streamable-HTTP, <code>grype-mcp</code> over stdio via <code>kubectl exec</code> &mdash; so the agentic layer is part of the deployable system rather than a local convenience layered on top of it.</p>
 
     <div class="server-block">
       <div class="server-head">
@@ -655,7 +655,7 @@
         <span class="server-name">grype-mcp</span>
         <span class="server-count">9 tools · Anchore official</span>
       </div>
-      <p class="server-desc">The official Anchore server, installed from PyPI &mdash; broader query surface for interrogating the vulnerability database directly, not just scanning artefacts.</p>
+      <p class="server-desc">The official Anchore server &mdash; broader query surface for interrogating the vulnerability database directly, not just scanning artefacts. Runs <strong>in-cluster</strong> too: its own code hardcodes stdio (no HTTP mode to enable), so it's deployed as an always-on pod and reached via <code>kubectl exec -i</code> instead &mdash; same protocol, the bytes just cross the Kubernetes API server rather than a local fork.</p>
       <div class="tool-list">
         <div class="tool-row"><span class="tool-name">scan_dir / scan_image</span><span class="tool-desc">Direct Grype scans, no SBOM step</span></div>
         <div class="tool-row"><span class="tool-name">scan_purl</span><span class="tool-desc">Check one package by Package URL &mdash; <code>pkg:npm/lodash@4.17.20</code></span></div>
@@ -666,7 +666,7 @@
     </div>
 
     <div class="callout good">
-      <strong>Running today, not conceptually.</strong> Every push to this repo is gated by a real <code>.git/hooks/pre-push</code> hook that calls <code>sbom-scan</code>'s <code>full_scan</code> before code leaves the machine. And the in-cluster endpoint answers real questions right now &mdash; a live <code>tools/call</code> to <code>get_catalogue_summary</code> through <code>http://mcp.lab.localhost:8080/mcp</code> returned <code>{"images_tracked": 19, "sboms_stored": 19, "total_packages": 5099, "total_findings": 2406}</code>, matching the numbers above exactly.
+      <strong>Running today, not conceptually.</strong> Every push to this repo is gated by a real <code>.git/hooks/pre-push</code> hook that calls <code>sbom-scan</code>'s <code>full_scan</code> before code leaves the machine. Both in-cluster endpoints answer real questions right now: a live <code>tools/call</code> to <code>get_catalogue_summary</code> through <code>http://mcp.lab.localhost:8080/mcp</code> returned <code>{"images_tracked": 19, "sboms_stored": 19, "total_packages": 5099, "total_findings": 2406}</code>, matching the numbers above exactly; and a live handshake through <code>connect-grype-mcp.sh</code> against the pod on <code>agent-1</code> returned all 9 tools over <code>kubectl exec -i</code>.
     </div>
     <div class="callout warn">
       <strong>No auth in front of the in-cluster endpoint yet.</strong> Anyone reachable at <code>mcp.lab.localhost</code> can call every tool, catalogue reads included &mdash; acceptable for a single-operator local lab, not for anything beyond it. <code>MCPServer</code> already accepts a token verifier for this; wiring it in is scoped out of this pass deliberately, not overlooked.
@@ -685,8 +685,9 @@ make cluster
 <span class="cmt"># registry, catalogue, inventory jobs, admission control, dashboard</span>
 cd phase3-inventory &amp;&amp; ./bootstrap.sh
 
-<span class="cmt"># the MCP server, in-cluster, reachable at mcp.lab.localhost</span>
-make mcp-server-deploy</code></pre>
+<span class="cmt"># both MCP servers, in-cluster</span>
+make mcp-server-deploy     <span class="cmt"># sbom-scan, HTTP, mcp.lab.localhost</span>
+make grype-mcp-deploy      <span class="cmt"># grype-mcp, stdio via kubectl exec</span></code></pre>
   </section>
 
   <footer>

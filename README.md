@@ -41,11 +41,12 @@ storage; a continuous re-matching job that refreshes the vulnerability
 database and re-scans stored SBOMs on a schedule; Kyverno admission
 control in audit mode; a Grafana dashboard over the whole catalogue; a
 CI pipeline that generates and scans SBOMs on every push; two MCP servers
-exposing this tooling to an AI assistant conversationally — one of them
-deployed **in-cluster** over streamable-HTTP, not just as a local
-subprocess, so the agentic layer is part of the deployable system rather
-than a convenience bolted onto one developer's laptop; and a pre-push git
-hook that runs a real scan before code leaves the machine.
+exposing this tooling to an AI assistant conversationally, **both running
+in-cluster** — one over streamable-HTTP, the other (a stdio-only
+third-party package) reached via `kubectl exec` — so the agentic layer is
+part of the deployable system rather than a convenience bolted onto one
+developer's laptop; and a pre-push git hook that runs a real scan before
+code leaves the machine.
 
 Everything below is measured against that running system, not described
 from the plan.
@@ -245,8 +246,9 @@ should expect to spend money once self-assembly stops paying for itself.
   dashboard.
 - `phase4-ci/` — GitHub Actions integration, including a real recorded
   failing run and its fix.
-- `phase5-agentic/` — two MCP servers (one deployable in-cluster over
-  HTTP, not just host-side stdio) and a real pre-push scan gate.
+- `phase5-agentic/` — two MCP servers, both deployable in-cluster (one
+  over HTTP, one over stdio via `kubectl exec`), and a real pre-push scan
+  gate.
 - `phase6-self-scan/` — the pipeline pointed at itself, with the full
   aggregate report, licence inventory, and VEX triage.
 - `docs/build-log/` — the chronological account of the build, kept from
@@ -262,7 +264,8 @@ findings — this document is the synthesis, those are the primary sources.
 make toolchain       # syft, grype, grant, docker (via colima), kubectl, helm, k3d, k9s
 make cluster          # bring up the k3d cluster
 cd phase3-inventory && ./bootstrap.sh   # registry, storage, catalogue, jobs, admission control, dashboard
-cd .. && make mcp-server-deploy   # the MCP server, in-cluster, reachable at mcp.lab.localhost
+cd .. && make mcp-server-deploy   # sbom-scan, in-cluster, reachable at mcp.lab.localhost
+make grype-mcp-deploy              # grype-mcp, in-cluster, reachable via kubectl exec
 cd phase6-self-scan && ./aggregate-report.sh   # the numbers above, reproduced
 ```
 

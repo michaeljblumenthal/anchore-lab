@@ -5,9 +5,12 @@ Status legend: `[x]` done and verified, `[ ]` not started, `[~]` in progress.
 ## Checklist
 
 - [x] Install `anchore/grype-mcp` and connect it to an MCP-capable client.
-  `install-grype-mcp.sh`, wired into `.mcp.json` as `grype-mcp`. Verified
-  with a real MCP `initialize` + `tools/list` handshake (no client
-  required — piped raw JSON-RPC into the process over stdio): 9 tools
+  Two ways, both working: `install-grype-mcp.sh` for a host-side stdio
+  install, and — see "In-cluster deployment" below — a real in-cluster
+  deployment reached via `kubectl exec -i`, since the package hardcodes
+  the stdio transport. `.mcp.json`'s `grype-mcp` entry currently points at
+  the in-cluster connection (`connect-grype-mcp.sh`). Verified with a real
+  MCP `initialize` + `tools/list` handshake in both modes: 9 tools
   (`find_grype`, `update_grype`, `scan_dir`, `scan_purl`, `scan_image`,
   `search_vulns`, `get_vuln_details`, `get_db_info`, `update_db`).
 - [x] `sbom-mcp-server` (this repo's own MCP server, built in Phase 1 —
@@ -61,10 +64,21 @@ rather than a local file. `query_images_by_package("stdlib")` returned the
 same base-image-commonality data Phase 6 found by direct SQL, now
 answerable conversationally against a running cluster.
 
-`grype-mcp` (the third-party official Anchore server) was not moved
-in-cluster — it's stdio-only by design and not this repo's code to modify.
-It stays host-side, which is the correct scope: it's a query tool against
-the Grype vulnerability database, not a cluster-state service.
+`grype-mcp` (the third-party official Anchore server) runs in-cluster too,
+but by a different mechanism, because its `server.py` hardcodes
+`mcp.run(transport='stdio')` — confirmed by reading the installed
+package's source — so unlike `sbom-mcp-server` it can't simply be told to
+listen on HTTP without patching Anchore's own code, which is out of scope
+here. Instead: `phase5-agentic/manifests/grype-mcp.yaml` deploys it as an
+always-on pod (entrypoint `sleep infinity`, the actual `grype-mcp` process
+started per-connection), and `connect-grype-mcp.sh` relays an MCP client's
+stdio into that pod via `kubectl exec -i` — from the client's point of
+view this is indistinguishable from a local stdio process; the bytes just
+happen to be relayed through the Kubernetes API server into a pod instead
+of a local fork. No Service or Ingress needed, `kubectl exec` talks to the
+API server directly. Verified with the same `initialize`/`tools/list`
+handshake used for the host-side install, all 9 tools present, running
+against the pod on `agent-1`.
 
 **Known gap, stated plainly rather than half-solved**: the in-cluster
 endpoint has no authentication in front of it. Anyone who can reach

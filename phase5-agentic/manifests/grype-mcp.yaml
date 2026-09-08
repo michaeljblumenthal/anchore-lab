@@ -1,0 +1,31 @@
+# grype-mcp, in-cluster, reached via `kubectl exec -i` rather than a
+# Service+Ingress -- it's a hardcoded-stdio third-party package (see
+# grype-mcp-container/Dockerfile), so there's no HTTP endpoint to expose.
+# No Service/Ingress on purpose: kubectl exec talks to the API server
+# directly and doesn't need one.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: grype-mcp
+  namespace: anchore-lab-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: grype-mcp
+  template:
+    metadata:
+      labels:
+        app: grype-mcp
+    spec:
+      serviceAccountName: sbom-jobs
+      containers:
+        - name: grype-mcp
+          image: zot.lab.localhost:8080/lab/grype-mcp:0.1.0
+          resources:
+            requests:
+              cpu: 50m
+              memory: 128Mi
+            limits:
+              cpu: 300m
+              memory: 512Mi

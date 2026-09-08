@@ -5,7 +5,7 @@
       "args": []
     },
     "grype-mcp": {
-      "command": "phase5-agentic/grype-mcp-install/.venv/bin/grype-mcp",
+      "command": "phase5-agentic/connect-grype-mcp.sh",
       "args": []
     }
   }

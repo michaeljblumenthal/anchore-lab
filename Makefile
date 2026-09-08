@@ -1,4 +1,4 @@
-.PHONY: toolchain mcp-server mcp-server-scan image-scan repo-scan cluster clean-cluster mcp-server-deploy help
+.PHONY: toolchain mcp-server mcp-server-scan image-scan repo-scan cluster clean-cluster mcp-server-deploy grype-mcp-deploy help
 
 help:
 	@echo "Targets:"
@@ -6,6 +6,7 @@ help:
 	@echo "  mcp-server        create venv and install sbom-mcp-server (host-side, stdio)"
 	@echo "  mcp-server-scan   run a full syft->grype->grant scan against a TARGET (default: this repo)"
 	@echo "  mcp-server-deploy build+push+deploy sbom-mcp-server in-cluster (streamable-http, mcp.lab.localhost)"
+	@echo "  grype-mcp-deploy  build+push+deploy grype-mcp in-cluster (stdio via kubectl exec, see .mcp.json)"
 	@echo "  image-scan        SBOM (3 formats) + grype + VEX for an IMAGE (default: python:3.12-slim)"
 	@echo "  repo-scan         shallow-clone a REPO and SBOM it as a source-repo target"
 	@echo "  cluster           bring up the Phase 2 k3d cluster"
@@ -51,3 +52,9 @@ mcp-server-deploy:
 	kubectl apply -f phase5-agentic/manifests/mcp-server.yaml
 	kubectl rollout status deployment/mcp-server -n anchore-lab-system --timeout=90s
 	@echo "MCP server reachable at http://mcp.lab.localhost:8080/mcp"
+
+grype-mcp-deploy:
+	cd phase3-inventory && ./push-to-registry.sh ../phase5-agentic/grype-mcp-container/Dockerfile ../phase5-agentic/grype-mcp-container lab/grype-mcp:0.1.0
+	kubectl apply -f phase5-agentic/manifests/grype-mcp.yaml
+	kubectl rollout status deployment/grype-mcp -n anchore-lab-system --timeout=90s
+	@echo "grype-mcp running in-cluster; .mcp.json's 'grype-mcp' entry now connects via phase5-agentic/connect-grype-mcp.sh (kubectl exec -i)"
