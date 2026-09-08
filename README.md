@@ -288,18 +288,32 @@ laptop — Claude Desktop just points at the running cluster.
 
 **Step 1 — add the connection.** Open
 `~/Library/Application Support/Claude/claude_desktop_config.json`
-(macOS) and add:
+(macOS — Settings → Developer → Edit Config opens the same file) and add:
 
 ```json
 {
   "mcpServers": {
     "anchore-lab-cluster": {
-      "type": "http",
-      "url": "http://mcp.lab.localhost:8080/mcp"
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "http://mcp.lab.localhost:8080/mcp", "--allow-http"]
     }
   }
 }
 ```
+
+This uses [`mcp-remote`](https://www.npmjs.com/package/mcp-remote) (no
+install step — `npx` fetches it on first run) as a local bridge. Two
+things that look like they should work here don't, confirmed by testing
+both directly against this exact server: **Settings → Connectors → Add
+custom connector** in the app UI can't reach it — that path always
+connects from Anthropic's cloud, not your machine, so it needs a public
+HTTPS URL and never sees `mcp.lab.localhost`. And a plain
+`"type": "http"` entry in the config file above is silently ignored —
+Claude Desktop's config schema only validates `stdio`-launched servers,
+so the entry loads with no error and no tools, which is worse than an
+error because nothing tells you why. `mcp-remote` sidesteps both: it's a
+real local process (`stdio`, so the config file accepts it), it just
+happens to forward everything to the HTTP server running in the cluster.
 
 **Step 2 — restart Claude Desktop.** Nine tools appear under its MCP
 menu, including `scan_git_repo`.

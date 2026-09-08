@@ -696,15 +696,16 @@ make bootstrap</code></pre>
     <p class="section-sub">Everything below runs after the cluster is up. Nothing installs on your laptop &mdash; Claude Desktop just points at the running cluster.</p>
 
     <p style="font-size:13px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.05em;margin:0 0 6px">Step 1 &mdash; add the connection</p>
-    <p style="font-size:13.5px;color:var(--text-dim);max-width:66ch;margin-top:0">Open <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> and add:</p>
+    <p style="font-size:13.5px;color:var(--text-dim);max-width:66ch;margin-top:0">Open <code>~/Library/Application Support/Claude/claude_desktop_config.json</code> (Settings &rarr; Developer &rarr; Edit Config) and add:</p>
     <pre><code>{
   "mcpServers": {
     "anchore-lab-cluster": {
-      "type": "http",
-      "url": "http://mcp.lab.localhost:8080/mcp"
+      "command": "npx",
+      "args": ["-y", "mcp-remote", "http://mcp.lab.localhost:8080/mcp", "--allow-http"]
     }
   }
 }</code></pre>
+    <p style="font-size:13.5px;color:var(--text-dim);max-width:66ch">Confirmed by testing both directly against this server: the in-app <strong style="color:var(--text)">Settings &rarr; Connectors</strong> UI can't reach this &mdash; it connects from Anthropic's cloud, not your machine, so it needs a public HTTPS URL. And a plain <code>"type": "http"</code> config-file entry loads silently with zero tools, no error &mdash; the config file only validates <code>stdio</code> servers. <a href="https://www.npmjs.com/package/mcp-remote">mcp-remote</a> is a real local process that bridges to the HTTP server, so both requirements are satisfied.</p>
 
     <p style="font-size:13px;color:var(--text-faint);text-transform:uppercase;letter-spacing:0.05em;margin:20px 0 6px">Step 2 &mdash; restart Claude Desktop</p>
     <p style="font-size:13.5px;color:var(--text-dim);max-width:66ch;margin-top:0">Nine tools appear under its MCP menu, including <code>scan_git_repo</code>.</p>

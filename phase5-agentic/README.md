@@ -130,10 +130,15 @@ on macOS), add this to the client's MCP config:
 }
 ```
 
-(Claude Code specifically: this is the `.mcp.json` shape for a remote
-streamable-HTTP server — `type` also accepts `streamable-http` as an
-alias, since that's the MCP spec's own name for the transport; an entry
-with `url` but no `type` is read as stdio and will fail to connect.)
+(This is Claude Code's `.mcp.json` shape for a remote streamable-HTTP
+server — `type` also accepts `streamable-http` as an alias, since that's
+the MCP spec's own name for the transport; an entry with `url` but no
+`type` is read as stdio and will fail to connect. **This config does not
+work in Claude Desktop's `claude_desktop_config.json`** — confirmed by
+testing it live against this exact server: Claude Desktop's config
+schema only validates `stdio`-launched servers, so a `"type": "http"`
+entry there loads silently with zero tools and no error. See "Connecting
+from Claude Desktop" below for the config that actually works there.)
 
 This repo's own root `.mcp.json` deliberately keeps `sbom-scan` pointed at
 the **host-side stdio** binary instead — faster to start, and doesn't
@@ -187,14 +192,22 @@ before writing this down):
    for anything that isn't `localhost` itself, and `mcp.lab.localhost`,
    while it resolves to `127.0.0.1`, isn't the literal string
    `localhost`.)
-3. Restart Claude Desktop. The five `sbom-scan` tools (plus the three
-   catalogue tools, since this server is deployed in cluster mode) appear
-   under the MCP tools menu.
+3. Restart Claude Desktop. Nine `sbom-scan` tools (five core, three
+   catalogue, plus `scan_git_repo`) appear under the MCP tools menu.
 
-Verified directly (not just documented from the package's own claims):
-ran `npx -y mcp-remote http://mcp.lab.localhost:8080/mcp --allow-http`
-by hand, piped a raw `initialize` request in, got a real response back
-from `sbom-mcp-server` through the bridge before writing this section.
+Verified twice, independently: once by running
+`npx -y mcp-remote http://mcp.lab.localhost:8080/mcp --allow-http` by
+hand and piping a raw `initialize` request in; and again by actually
+adding this exact config to a real, running Claude Desktop installation,
+restarting it, and confirming in `~/Library/Logs/Claude/mcp.log` that it
+initialized, connected, and got a real `tools/list` result back — not
+just documented from the package's own claims. The same live test also
+confirmed the negative claims above: an entry with `"type": "http"`
+(no `command`) produced zero log activity at all — not even a connection
+attempt — while `Settings → Connectors` requires a URL reachable from
+Anthropic's cloud and was not further tested for that reason (it's a
+categorically different failure mode, already well documented by
+Anthropic's own support pages).
 
 ## Findings
 
@@ -245,3 +258,25 @@ from `sbom-mcp-server` through the bridge before writing this section.
    has to be remembered and reapplied by hand everywhere else it's
    relevant. Worth naming as a real cost of that structure, not just the
    individual bug.
+4. **A plain `"type": "http"` entry in `claude_desktop_config.json`
+   fails silently — confirmed by adding it to a real installation and
+   restarting.** Documentation once claimed a config-file entry with
+   `"type": "http"` and a `url` would work in Claude Desktop, mirroring
+   Claude Code's `.mcp.json` shape. Re-checked this directly rather than
+   assume it still held: added that exact entry to a real, in-use
+   `claude_desktop_config.json`, restarted the app, and checked
+   `~/Library/Logs/Claude/mcp.log` — the server that used a real `stdio`
+   command (already configured, unrelated to this lab) initialized and
+   connected normally in the same log; the `"type": "http"` entry
+   produced no log lines at all, not even a failed connection attempt.
+   Claude Desktop's config schema silently drops non-`stdio` entries
+   rather than erroring on them, which is worse for debugging than an
+   explicit failure would be — someone would see zero new tools and have
+   no log line pointing at why. Confirmed the actual fix
+   (`mcp-remote`, above) still works with the same live-restart test
+   immediately afterward, then reverted the test entries so the
+   installation was left exactly as found. **Lesson for anyone
+   maintaining docs like these**: MCP client behaviour is not static
+   across app versions, and a claim like "this config works in Claude
+   Desktop" is worth re-testing against a real installation rather than
+   trusting what was true when it was first written down.
