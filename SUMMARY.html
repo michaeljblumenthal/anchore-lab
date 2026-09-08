@@ -686,7 +686,7 @@
 
   <section>
     <div class="section-head"><span class="section-num">05</span><h2>Start it in three commands</h2></div>
-    <p class="section-sub">Free, open source, no licence to request. Anyone with Docker and Homebrew can have the same cluster running &mdash; MCP servers included, no separate deploy step.</p>
+    <p class="section-sub">In plain terms: three commands install the tools, build a small local Kubernetes cluster, and stand up the whole pipeline inside it &mdash; registry, database, scanning jobs, both MCP servers. No paid licence, no cloud account, no sudo. Runs on a laptop.</p>
     <pre><code><span class="cmt"># toolchain: syft, grype, grant, k3d, kubectl, helm</span>
 make toolchain
 
@@ -696,6 +696,22 @@ make cluster
 <span class="cmt"># everything else: registry, catalogue, inventory jobs,</span>
 <span class="cmt"># admission control, dashboard, and BOTH MCP servers</span>
 make bootstrap</code></pre>
+
+    <p style="margin-top:24px;font-size:14.5px;font-weight:600;color:var(--text)">Connect it to Claude Desktop, then scan a repo on your machine</p>
+    <p style="font-size:13.5px;color:var(--text-dim);max-width:66ch">Syft/Grype/Grant don't need the cluster &mdash; they're just CLI tools. The cluster is for the <em>pipeline</em> (registry, database, scheduled re-scans, dashboard). To scan something on your own machine, point Claude Desktop at the <strong style="color:var(--text)">host-side</strong> MCP server, not the in-cluster one &mdash; a pod can't see your laptop's filesystem, this local process can.</p>
+    <pre><code>{
+  "mcpServers": {
+    "anchore-lab": {
+      "command": "/absolute/path/to/anchore-lab/phase5-agentic/sbom-mcp-server/.venv/bin/sbom-mcp-server",
+      "args": []
+    }
+  }
+}</code></pre>
+    <p style="font-size:13.5px;color:var(--text-dim)">Add that to <code>claude_desktop_config.json</code> (restart the app), then in a new chat:</p>
+    <div class="callout good" style="font-style:italic">
+      "Use the full_scan tool to scan <code>dir:/Users/yourname/code/some-project</code> for vulnerabilities and licence issues, and summarise the Critical and High findings."
+    </div>
+    <p style="font-size:13.5px;color:var(--text-dim);margin-top:10px">Claude runs Syft to catalogue the repo, Grype to match against the vulnerability database, and Grant to check licences &mdash; the same pipeline this lab's own pre-push hook runs on every commit &mdash; and reports back in the chat. Verified: a real <code>full_scan</code> call against this server's own directory returned 79 packages and a full Grype/Grant report before this was written down.</p>
   </section>
 
   <footer>

@@ -260,19 +260,69 @@ findings — this document is the synthesis, those are the primary sources.
 
 ## Quickstart
 
+In plain terms: three commands install the tools, build a small local
+Kubernetes cluster, and stand up the whole pipeline inside it — the
+registry, the database, the scanning jobs, and both MCP servers. Nothing
+here needs a paid licence, a cloud account, or root/sudo access; it all
+runs on a laptop.
+
 ```sh
 make toolchain    # syft, grype, grant, docker (via colima), kubectl, helm, k3d, k9s
 make cluster       # bring up the k3d cluster
 make bootstrap     # everything else: registry, storage, catalogue, jobs,
                     # admission control, dashboard, and both MCP servers
-cd phase6-self-scan && ./aggregate-report.sh   # the numbers above, reproduced
 ```
 
-Three commands, all from the repo root, bring up the entire solution —
-MCP servers included. See
-[phase5-agentic/README.md](phase5-agentic/README.md#connecting-from-claude-desktop-a-local-app-not-this-repos-own-client)
-for connecting an external client (Claude Desktop, or this repo's own
-Claude Code session) to the running MCP endpoint.
+That's it — the solution is running. Optional: reproduce the numbers
+quoted throughout this document with
+`cd phase6-self-scan && ./aggregate-report.sh`.
+
+### Connect it to Claude Desktop, then scan a repo on your machine
+
+The tools (Syft, Grype, Grant) don't need the cluster to run — they're
+just command-line programs. The cluster is for the *pipeline* (registry,
+database, scheduled re-scans, dashboard); scanning itself works standalone.
+So to have Claude Desktop scan something on your own machine, connect it
+to the **host-side** MCP server, not the in-cluster one — a pod can't see
+your laptop's filesystem, but this local process can.
+
+1. Quit Claude Desktop if it's running.
+2. Edit (or create)
+   `~/Library/Application Support/Claude/claude_desktop_config.json`
+   (macOS) and add:
+
+   ```json
+   {
+     "mcpServers": {
+       "anchore-lab": {
+         "command": "/absolute/path/to/anchore-lab/phase5-agentic/sbom-mcp-server/.venv/bin/sbom-mcp-server",
+         "args": []
+       }
+     }
+   }
+   ```
+
+   (Replace the path with wherever you cloned this repo — it must be an
+   absolute path. Run `make mcp-server` from the repo root first if that
+   `.venv` doesn't exist yet.)
+3. Restart Claude Desktop. Five tools — `generate_sbom`,
+   `scan_vulnerabilities`, `scan_target`, `check_licenses`, `full_scan` —
+   appear under its MCP tools menu.
+4. Try it. In a new chat, with any local git repository on your machine:
+
+   > Use the full_scan tool to scan `dir:/Users/yourname/code/some-project`
+   > for vulnerabilities and licence issues, and summarise the Critical
+   > and High findings.
+
+   Claude runs Syft to catalogue the repo's dependencies, Grype to match
+   them against the vulnerability database, and Grant to check licences —
+   the same pipeline this lab's own pre-push hook runs on every commit —
+   and reports back in the chat.
+
+For connecting to the **in-cluster** deployment instead (useful once
+you've run `make bootstrap` and want to query the running catalogue
+rather than scan a fresh local repo), see
+[phase5-agentic/README.md](phase5-agentic/README.md#connecting-from-claude-desktop-a-local-app-not-this-repos-own-client).
 
 `make help` lists every available target.
 
