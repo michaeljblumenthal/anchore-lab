@@ -1,0 +1,5 @@
+ images_tracked | sboms_stored | total_packages | total_findings_pre_triage 
+----------------+--------------+----------------+---------------------------
+             19 |           19 |           5099 |                      2406
+(1 row)
+

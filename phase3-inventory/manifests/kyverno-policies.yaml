@@ -22,11 +22,26 @@ spec:
                 - anchore-lab
                 - anchore-lab-system
       validate:
-        message: "Image must come from an approved registry (zot.lab.localhost, docker.io, ghcr.io, rancher)"
+        # Bare image references with no registry prefix at all (e.g.
+        # "postgres:16-alpine", "traefik/whoami:v1.10") resolve implicitly
+        # to Docker Hub but never literally contain "docker.io" in the
+        # string — confirmed as a real self-inflicted gap in
+        # phase6-self-scan/README.md: both catalogue-schema
+        # (postgres:16-alpine) and whoami (traefik/whoami:v1.10) failed
+        # this rule for exactly this reason, 8 failures total across the
+        # cluster-wide audit. Fixed by listing the specific bare-name
+        # references this repo actually uses, rather than a blanket "*"
+        # wildcard, which would make the rule a no-op and defeat the
+        # policy's purpose (any image at all would then match). Anyone
+        # adding a new bare-name image reference needs to add it here too
+        # — a real, ongoing maintenance cost of this approach, worth
+        # naming rather than hiding behind a wildcard that looks like a
+        # fix but isn't one.
+        message: "Image must come from an approved registry (zot.lab.localhost, docker.io, ghcr.io, rancher) or be one of this repo's approved bare Docker Hub references"
         pattern:
           spec:
             containers:
-              - image: "zot.lab.localhost:8080/* | docker.io/* | *docker.io/* | ghcr.io/* | rancher/*"
+              - image: "zot.lab.localhost:8080/* | docker.io/* | *docker.io/* | ghcr.io/* | rancher/* | postgres:* | traefik/whoami:*"
 ---
 apiVersion: kyverno.io/v1
 kind: ClusterPolicy

@@ -10,6 +10,11 @@ RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates
 RUN curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin \
     && curl -sSfL https://raw.githubusercontent.com/anchore/grype/main/install.sh | sh -s -- -b /usr/local/bin
 
+# Unbuffered stdout: without this, a crash before the buffer flushes (e.g.
+# an early exception) produces zero log output, making `kubectl logs`
+# useless for diagnosing exactly the failures that matter most.
+ENV PYTHONUNBUFFERED=1
+
 WORKDIR /app
 COPY requirements-sbom.txt .
 RUN pip install --no-cache-dir -r requirements-sbom.txt

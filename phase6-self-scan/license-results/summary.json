@@ -1,0 +1,181 @@
+{
+  "totals": {
+    "packages": 5099,
+    "allowed": 0,
+    "denied": 4715,
+    "unlicensed": 4128
+  },
+  "per_image": [
+    {
+      "image": "registry-1.docker.io/bitnami/postgresql:latest",
+      "cataloged": 130,
+      "total": 130,
+      "allowed": 0,
+      "denied": 130,
+      "ignored": 0,
+      "unlicensed": 3
+    },
+    {
+      "image": "docker.io/bitnamilegacy/minio:2025.7.23-debian-12-r3",
+      "cataloged": 466,
+      "total": 382,
+      "allowed": 0,
+      "denied": 382,
+      "ignored": 0,
+      "unlicensed": 280
+    },
+    {
+      "image": "docker.io/bitnamilegacy/minio-object-browser:2.0.2-debian-12-r3",
+      "cataloged": 126,
+      "total": 126,
+      "allowed": 0,
+      "denied": 126,
+      "ignored": 0,
+      "unlicensed": 124
+    },
+    {
+      "image": "ghcr.io/project-zot/zot:v2.1.21",
+      "cataloged": 477,
+      "total": 477,
+      "allowed": 0,
+      "denied": 477,
+      "ignored": 0,
+      "unlicensed": 469
+    },
+    {
+      "image": "traefik/whoami:v1.10",
+      "cataloged": 3,
+      "total": 3,
+      "allowed": 0,
+      "denied": 3,
+      "ignored": 0,
+      "unlicensed": 2
+    },
+    {
+      "image": "rancher/mirrored-coredns-coredns:1.14.3",
+      "cataloged": 190,
+      "total": 190,
+      "allowed": 0,
+      "denied": 190,
+      "ignored": 0,
+      "unlicensed": 186
+    },
+    {
+      "image": "rancher/local-path-provisioner:v0.0.36",
+      "cataloged": 94,
+      "total": 84,
+      "allowed": 0,
+      "denied": 84,
+      "ignored": 0,
+      "unlicensed": 66
+    },
+    {
+      "image": "rancher/mirrored-metrics-server:v0.8.1",
+      "cataloged": 101,
+      "total": 101,
+      "allowed": 0,
+      "denied": 101,
+      "ignored": 0,
+      "unlicensed": 97
+    },
+    {
+      "image": "rancher/klipper-lb:v0.4.17",
+      "cataloged": 22,
+      "total": 22,
+      "allowed": 0,
+      "denied": 22,
+      "ignored": 0,
+      "unlicensed": 0
+    },
+    {
+      "image": "rancher/mirrored-library-traefik:3.6.13",
+      "cataloged": 371,
+      "total": 371,
+      "allowed": 0,
+      "denied": 371,
+      "ignored": 0,
+      "unlicensed": 352
+    },
+    {
+      "image": "zot.lab.localhost:8080/lab/runtime-inventory:0.1.0",
+      "cataloged": 119,
+      "total": 114,
+      "allowed": 0,
+      "denied": 114,
+      "ignored": 0,
+      "unlicensed": 7
+    },
+    {
+      "image": "reg.kyverno.io/kyverno/kyverno:v1.19.0",
+      "cataloged": 341,
+      "total": 341,
+      "allowed": 0,
+      "denied": 341,
+      "ignored": 0,
+      "unlicensed": 335
+    },
+    {
+      "image": "reg.kyverno.io/kyverno/kyvernopre:v1.19.0",
+      "cataloged": 338,
+      "total": 338,
+      "allowed": 0,
+      "denied": 338,
+      "ignored": 0,
+      "unlicensed": 332
+    },
+    {
+      "image": "reg.kyverno.io/kyverno/background-controller:v1.19.0",
+      "cataloged": 338,
+      "total": 338,
+      "allowed": 0,
+      "denied": 338,
+      "ignored": 0,
+      "unlicensed": 332
+    },
+    {
+      "image": "docker.io/grafana/grafana:12.3.1",
+      "cataloged": 604,
+      "total": 592,
+      "allowed": 0,
+      "denied": 592,
+      "ignored": 0,
+      "unlicensed": 559
+    },
+    {
+      "image": "zot.lab.localhost:8080/lab/sbom-jobs:0.1.0",
+      "cataloged": 701,
+      "total": 428,
+      "allowed": 0,
+      "denied": 428,
+      "ignored": 0,
+      "unlicensed": 318
+    },
+    {
+      "image": "reg.kyverno.io/kyverno/cleanup-controller:v1.19.0",
+      "cataloged": 339,
+      "total": 339,
+      "allowed": 0,
+      "denied": 339,
+      "ignored": 0,
+      "unlicensed": 333
+    },
+    {
+      "image": "reg.kyverno.io/kyverno/reports-controller:v1.19.0",
+      "cataloged": 338,
+      "total": 338,
+      "allowed": 0,
+      "denied": 338,
+      "ignored": 0,
+      "unlicensed": 332
+    },
+    {
+      "image": "docker.io/library/busybox:1.31.1",
+      "cataloged": 1,
+      "total": 1,
+      "allowed": 0,
+      "denied": 1,
+      "ignored": 0,
+      "unlicensed": 1
+    }
+  ]
+}

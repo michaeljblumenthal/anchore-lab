@@ -1,0 +1,18 @@
+{
+  "@context": "https://openvex.dev/ns/v0.2.0",
+  "@id": "https://anchore-lab.internal/vex/go-2026-6089-h2c-triage",
+  "author": "anchore-lab build",
+  "timestamp": "2026-09-08T00:00:00Z",
+  "version": 1,
+  "statements": [
+    {
+      "vulnerability": { "name": "GO-2026-6089" },
+      "products": [
+        { "@id": "pkg:golang/stdlib@1.26.3" }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "GO-2026-6089 affects net/http servers configured to accept unencrypted (h2c) HTTP/2 connections. This finding is on zot.lab.localhost:8080/lab/sbom-jobs, this lab's own SBOM-generation job image -- a one-shot batch job with no HTTP server of any kind, confirmed by reading the actual source (phase3-inventory/jobs/sbom_generate.py, sbom_rescan.py): no http.Server, no net/http import, no listener anywhere in the job's code path; it only makes outbound connections to Postgres, MinIO, and the registry. This is the one image, of the 14 affected by this CVE in the Phase 6 self-scan, whose full source is this repo's own and was actually read line by line for this triage -- the other 13 (Grafana, Kyverno's four controllers, CoreDNS, Traefik, MinIO, etc.) are real upstream projects whose HTTP-server configuration was not independently verified for this pass and remain untriaged (see phase6-self-scan/README.md's VEX-triage section)."
+    }
+  ]
+}

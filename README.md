@@ -22,7 +22,12 @@ written up after the fact.
   [phase4-ci/README.md](phase4-ci/README.md).
 - **Phase 5 — Agentic interface**: complete. See
   [phase5-agentic/README.md](phase5-agentic/README.md).
-- **Phase 6 — Turn the system on itself**: not started.
+- **Phase 6 — Turn the system on itself**: complete. See
+  [phase6-self-scan/README.md](phase6-self-scan/README.md). Headline:
+  19 images, 5,099 packages, 2,406 findings before triage; the stack's own
+  self-compliance gaps were found and genuinely fixed (72/0 pass after);
+  a real CVE lookup against the catalogue answered "is it present" in
+  under 3 seconds.
 
 ## Quickstart
 

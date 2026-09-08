@@ -83,6 +83,13 @@ spec:
           volumeMounts:
             - name: schema
               mountPath: /schema
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
       volumes:
         - name: schema
           configMap:
