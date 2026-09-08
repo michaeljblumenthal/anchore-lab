@@ -29,24 +29,59 @@ current inputs: `path`/`file`/`image` (mutually exclusive), `format`,
 
 - [x] `syft-action`/`scan-action` (actually `anchore/sbom-action` +
   `anchore/scan-action` — see above) wired into a real workflow.
-- [ ] Fail the build on a policy violation, then fix it, both documented.
-  `vulnerable-demo` job is expected to fail on push (pinned to
-  `pyjwt==1.7.1`, confirmed locally: 3 High findings via
-  GHSA-ffqj-6fqr-9h24, GHSA-xgmm-8j9v-c9wx, GHSA-752w-5fwx-jx9f). Once the
-  failing run is confirmed on GitHub Actions, a follow-up commit bumps the
-  pin and the same job is confirmed passing. **Both run links will be
-  recorded here once the workflow has actually executed on GitHub** — not
-  claimed from local reasoning alone.
-- [ ] SBOM published as a build artifact (per commit).
+- [x] Fail the build on a policy violation, then fix it, both documented,
+  both real GitHub Actions runs:
+  - **Failing run** (commit `59468bc`, `pyjwt==1.7.1`, 3 High findings —
+    GHSA-ffqj-6fqr-9h24, GHSA-xgmm-8j9v-c9wx, GHSA-752w-5fwx-jx9f):
+    https://github.com/michaeljblumenthal/anchore-lab/actions/runs/34225517136/job/102058554770
+  - **Fixed, passing run** (commit `678c77a`, bumped to `pyjwt==2.13.0`, 0
+    findings, confirmed locally before pushing):
+    https://github.com/michaeljblumenthal/anchore-lab/actions/runs/34225696387
+  - The real project's own job (`sbom-and-scan`) passed on both runs — it
+    was never the thing under test, `vulnerable-demo` was.
+- [x] SBOM published as a build artifact (per commit).
   `upload-artifact: true` default on sbom-action; `artifact-name` set
   explicitly per job so the two SBOMs (real project vs. demo fixture)
-  don't collide in the same workflow run.
-- [ ] Push build-time SBOMs into the Phase 3 catalogue, converging build-time
-  and runtime inventories in one place. Not yet implemented — needs a step
-  (or separate job) that pushes the generated SBOM into MinIO and inserts
-  the corresponding `images`/`sboms` rows, reusing `phase3-inventory/jobs/`
-  code rather than duplicating the insert logic. Tracked as remaining work.
+  don't collide in the same workflow run. Confirmed present on run
+  34225517136: `sbom-mcp-server.spdx.json`, `vulnerable-demo.spdx.json`.
+- [x] Push build-time SBOMs into the Phase 3 catalogue, converging build-time
+  and runtime inventories in one place.
+  `phase4-ci/push-sbom-to-catalogue.py` reuses the Phase 3 schema/insert
+  pattern (not duplicated — same `images`/`sboms` tables, a `syft-build.json`
+  MinIO key rather than `syft.json` so build-time and runtime SBOMs for the
+  same image don't collide). **Verified locally** via `kubectl port-forward`
+  to the cluster's Postgres/MinIO: pushed a build-time SBOM for
+  `sbom-mcp-server` at commit `678c77a`, 76 packages, `image_id=48` —
+  visible in the same catalogue the runtime pipeline writes to.
+  **Not wired into the actual GitHub-hosted workflow run** — see the
+  finding below for why, and what a real deployment would need instead.
 
 ## Findings
 
-(populated once the workflow has run at least once on GitHub Actions)
+1. **The plan's own prose names the wrong GitHub Action.** It says
+   "syft-action" — the actual Marketplace/GitHub name is
+   `anchore/sbom-action`. Confirmed by fetching `action.yml` directly from
+   both `anchore/sbom-action` and `anchore/scan-action` on `main` rather
+   than trusting the plan's wording or a search summary — exactly the
+   plan's own stated principle ("verify command syntax and configuration
+   against current upstream documentation before running anything").
+2. **The real project had nothing to legitimately fail CI on.**
+   `sbom-mcp-server`'s actual dependency tree is clean (0 Grype findings).
+   Rather than force an artificial failure into the real project's history,
+   built a separate, clearly-labeled `vulnerable-demo` fixture — a decision
+   worth stating plainly rather than quietly picking whichever project
+   happened to have a vulnerability to point at.
+3. **A GitHub-hosted CI runner cannot reach a laptop-local Kubernetes
+   cluster — the "push build-time SBOMs into the catalogue" step is
+   necessarily a local-only demonstration in this lab, not something the
+   pushed workflow actually does.** `push-sbom-to-catalogue.py` works and
+   is verified end-to-end via a port-forward from this machine, but
+   `.github/workflows/sbom-scan.yml` does not call it, because `catalogue-db-postgresql`
+   and `minio` only exist inside k3d, on `127.0.0.1`, on this specific Mac.
+   This is an honest architectural limit of a lab that runs entirely
+   locally, not a shortcut taken to save time: a real deployment would need
+   either a cloud-reachable catalogue (defeating "the whole thing is
+   self-hosted, local, and free") or a self-hosted GitHub Actions runner
+   inside the same network as the cluster. Worth stating explicitly in the
+   Phase 7 write-up as one of the differences between a lab and a
+   production system the plan itself asks to be honest about.

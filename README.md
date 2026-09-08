@@ -18,7 +18,8 @@ written up after the fact.
   [phase2-cluster/README.md](phase2-cluster/README.md).
 - **Phase 3 — Continuous inventory**: core pipeline complete and measured.
   See [phase3-inventory/README.md](phase3-inventory/README.md).
-- **Phase 4 — CI integration**: in progress.
+- **Phase 4 — CI integration**: complete. See
+  [phase4-ci/README.md](phase4-ci/README.md).
 - **Phase 5 — Agentic interface**: MCP server built (see
   [phase5-agentic/sbom-mcp-server/](phase5-agentic/sbom-mcp-server/)),
   pre-push gate pending.
