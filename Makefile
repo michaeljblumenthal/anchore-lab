@@ -1,16 +1,18 @@
-.PHONY: toolchain mcp-server mcp-server-scan image-scan repo-scan cluster clean-cluster mcp-server-deploy grype-mcp-deploy help
+.PHONY: toolchain mcp-server mcp-server-scan image-scan repo-scan cluster clean-cluster mcp-server-deploy grype-mcp-deploy bootstrap help
 
 help:
 	@echo "Targets:"
 	@echo "  toolchain         install/verify syft, grype, grant, docker(colima), kubectl, helm, k3d, k9s"
+	@echo "  cluster           bring up the Phase 2 k3d cluster"
+	@echo "  bootstrap         bring up everything else: registry, storage, catalogue, jobs,"
+	@echo "                    admission control, dashboard, and both MCP servers"
+	@echo "  clean-cluster     tear down the Phase 2 k3d cluster"
 	@echo "  mcp-server        create venv and install sbom-mcp-server (host-side, stdio)"
 	@echo "  mcp-server-scan   run a full syft->grype->grant scan against a TARGET (default: this repo)"
-	@echo "  mcp-server-deploy rebuild+redeploy sbom-mcp-server only (already part of phase3-inventory/bootstrap.sh)"
-	@echo "  grype-mcp-deploy  rebuild+redeploy grype-mcp only (already part of phase3-inventory/bootstrap.sh)"
+	@echo "  mcp-server-deploy rebuild+redeploy sbom-mcp-server only (already part of bootstrap)"
+	@echo "  grype-mcp-deploy  rebuild+redeploy grype-mcp only (already part of bootstrap)"
 	@echo "  image-scan        SBOM (3 formats) + grype + VEX for an IMAGE (default: python:3.12-slim)"
 	@echo "  repo-scan         shallow-clone a REPO and SBOM it as a source-repo target"
-	@echo "  cluster           bring up the Phase 2 k3d cluster"
-	@echo "  clean-cluster     tear down the Phase 2 k3d cluster"
 
 toolchain:
 	./phase1-toolchain/install.sh
@@ -43,6 +45,9 @@ repo-scan:
 
 cluster:
 	cd phase2-cluster && ./bootstrap.sh
+
+bootstrap:
+	cd phase3-inventory && ./bootstrap.sh
 
 clean-cluster:
 	k3d cluster delete anchore-lab

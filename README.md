@@ -261,16 +261,16 @@ findings — this document is the synthesis, those are the primary sources.
 ## Quickstart
 
 ```sh
-make toolchain       # syft, grype, grant, docker (via colima), kubectl, helm, k3d, k9s
-make cluster          # bring up the k3d cluster
-cd phase3-inventory && ./bootstrap.sh   # everything: registry, storage, catalogue, jobs,
-                                          # admission control, dashboard, and both MCP servers
-cd ../phase6-self-scan && ./aggregate-report.sh   # the numbers above, reproduced
+make toolchain    # syft, grype, grant, docker (via colima), kubectl, helm, k3d, k9s
+make cluster       # bring up the k3d cluster
+make bootstrap     # everything else: registry, storage, catalogue, jobs,
+                    # admission control, dashboard, and both MCP servers
+cd phase6-self-scan && ./aggregate-report.sh   # the numbers above, reproduced
 ```
 
-Two commands after the toolchain is installed — `make cluster` then
-`./bootstrap.sh` — bring up the entire solution, MCP servers included.
-See [phase5-agentic/README.md](phase5-agentic/README.md#connecting-from-claude-desktop-a-local-app-not-this-repos-own-client)
+Three commands, all from the repo root, bring up the entire solution —
+MCP servers included. See
+[phase5-agentic/README.md](phase5-agentic/README.md#connecting-from-claude-desktop-a-local-app-not-this-repos-own-client)
 for connecting an external client (Claude Desktop, or this repo's own
 Claude Code session) to the running MCP endpoint.
 

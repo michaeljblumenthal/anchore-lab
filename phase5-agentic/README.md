@@ -101,10 +101,10 @@ patching around it a second time.
 
 ## Connecting to the in-cluster `sbom-scan` server
 
-Prerequisite: the cluster is up (`make cluster`, then
-`phase3-inventory/bootstrap.sh` — both MCP servers are now step 9/9 of
-that script, not a separate deploy step; see the top-level README's
-quickstart). Then, from any MCP-capable client on the same machine as the
+Prerequisite: the cluster is up (`make cluster`, then `make bootstrap` —
+both MCP servers are now step 9/9 of that script, not a separate deploy
+step; see the top-level README's quickstart). Then, from any MCP-capable
+client on the same machine as the
 cluster (the ingress hostname `mcp.lab.localhost` resolves to `127.0.0.1`
 — see `phase2-cluster/README.md` for why that needs no `/etc/hosts` entry
 on macOS), add this to the client's MCP config:
