@@ -3,7 +3,7 @@
 SBOM-first continuous vulnerability management on Kubernetes, built from
 scratch with Anchore's open source tooling — Syft, Grype, and Grant — to
 find out what the approach actually costs and where it actually breaks.
-Built and written up over one week, September 2026.
+Built and written, September 2026.
 
 ## What this is, and isn't
 
